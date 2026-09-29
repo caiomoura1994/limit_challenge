@@ -16,8 +16,15 @@ export function useVehicles(filters: VehicleFilters = {}) {
 export function useVehicle(id: number) {
   return useQuery({
     queryKey: ['vehicles', 'detail', id],
-    queryFn: ({ signal }) => vehiclesApi.detail(id, signal),
+    // Keep the expensive in-flight read shared across remounts instead of cancelling
+    // and restarting it. Inactive results are released promptly after completion.
+    queryFn: () => vehiclesApi.detail(id),
     enabled: Number.isInteger(id) && id > 0,
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    gcTime: 60_000,
+    structuralSharing: false,
   });
 }
 
