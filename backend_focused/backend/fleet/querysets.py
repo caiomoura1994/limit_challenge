@@ -1,14 +1,14 @@
 from django.db import models
 from django.db.models import F, Max, Prefetch, Q
 
+from maintenance.models import MaintenanceRecord
+
 
 class VehicleQuerySet(models.QuerySet):
     def active(self):
         return self.filter(active=True)
 
     def with_details(self):
-        from maintenance.models import MaintenanceRecord
-
         return self.select_related("office").prefetch_related(
             Prefetch(
                 "maintenance_records",
