@@ -20,14 +20,3 @@ class MechanicQuerySet(models.QuerySet):
                 output_field=DecimalField(max_digits=14, decimal_places=2),
             ),
         ).order_by("-maintenance_count", "id")
-
-
-class MaintenanceRecordQuerySet(models.QuerySet):
-    def for_vehicle(self, vehicle):
-        return self.filter(vehicle=vehicle)
-
-    def with_mechanic(self):
-        return self.select_related("mechanic")
-
-    def latest_first(self):
-        return self.order_by("-maintenance_date", "-id")
