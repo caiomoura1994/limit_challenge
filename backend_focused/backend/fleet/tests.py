@@ -123,6 +123,31 @@ class VehicleApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("license_plate", response.data)
 
+    def test_rejects_deleting_vehicle_with_maintenance_records(self):
+        vehicle = Vehicle.objects.create(
+            **self.vehicle_payload(office=self.office),
+        )
+        mechanic = Mechanic.objects.create(
+            name="Jane Smith",
+            certification_number="ASE-001",
+        )
+        MaintenanceRecord.objects.create(
+            vehicle=vehicle,
+            mechanic=mechanic,
+            maintenance_date=date(2026, 1, 1),
+            maintenance_type="Inspection",
+            cost="100.00",
+        )
+
+        response = self.client.delete(reverse("vehicle-detail", args=[vehicle.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(
+            response.data["detail"],
+            "This resource cannot be deleted because related records depend on it.",
+        )
+        self.assertTrue(Vehicle.objects.filter(id=vehicle.id).exists())
+
 
 class VehicleConflictServiceTests(TestCase):
     def setUp(self):

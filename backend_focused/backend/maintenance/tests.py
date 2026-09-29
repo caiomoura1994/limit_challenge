@@ -41,6 +41,37 @@ class MechanicApiTests(APITestCase):
         delete_response = self.client.delete(detail_url)
         self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
 
+    def test_rejects_deleting_mechanic_with_maintenance_records(self):
+        office = Office.objects.create(name="Downtown Office", city="New York")
+        vehicle = Vehicle.objects.create(
+            vin="1HGCM82633A004352",
+            license_plate="ABC-1234",
+            make="Honda",
+            model="Accord",
+            year=2022,
+            office=office,
+        )
+        mechanic = Mechanic.objects.create(
+            name="Jane Smith",
+            certification_number="ASE-001",
+        )
+        MaintenanceRecord.objects.create(
+            vehicle=vehicle,
+            mechanic=mechanic,
+            maintenance_date=date(2026, 1, 1),
+            maintenance_type="Inspection",
+            cost="100.00",
+        )
+
+        response = self.client.delete(reverse("mechanic-detail", args=[mechanic.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(
+            response.data["detail"],
+            "This resource cannot be deleted because related records depend on it.",
+        )
+        self.assertTrue(Mechanic.objects.filter(id=mechanic.id).exists())
+
 
 class MaintenanceRecordApiTests(APITestCase):
     def setUp(self):
