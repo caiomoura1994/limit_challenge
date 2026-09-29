@@ -1,6 +1,7 @@
 from django_filters import rest_framework as filters
 
 from fleet.models import Vehicle
+from fleet.querysets import VehicleQuerySet
 
 
 class VehicleFilter(filters.FilterSet):
@@ -19,22 +20,21 @@ class VehicleFilter(filters.FilterSet):
         model = Vehicle
         fields = []
 
-    def filter_maintenance_date(self, queryset, name, value):
-        date_filters = {}
+    def filter_maintenance_date(
+        self,
+        queryset: VehicleQuerySet,
+        name,
+        value,
+    ):
+        start = value.start.date() if value.start else None
+        end = value.stop.date() if value.stop else None
 
-        if value.start:
-            date_filters["maintenance_records__maintenance_date__gte"] = (
-                value.start.date()
-            )
+        return queryset.maintained_between(start=start, end=end)
 
-        if value.stop:
-            date_filters["maintenance_records__maintenance_date__lte"] = (
-                value.stop.date()
-            )
-
-        return queryset.filter(**date_filters).distinct()
-
-    def filter_mechanic_certification_number(self, queryset, name, value):
-        return queryset.filter(
-            maintenance_records__mechanic__certification_number__iexact=value,
-        ).distinct()
+    def filter_mechanic_certification_number(
+        self,
+        queryset: VehicleQuerySet,
+        name,
+        value,
+    ):
+        return queryset.by_mechanic_certification(value)

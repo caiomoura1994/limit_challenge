@@ -1,10 +1,10 @@
-from django.db.models import Prefetch
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from fleet.filters import VehicleFilter
 from fleet.models import Vehicle
+from fleet.querysets import VehicleQuerySet
 from fleet.serializers import (
     VehicleAssignmentSerializer,
     VehicleDetailSerializer,
@@ -18,20 +18,16 @@ from maintenance.serializers import MaintenanceRecordSerializer
 
 
 class VehicleViewSet(viewsets.ModelViewSet):
-    queryset = Vehicle.objects.order_by("id")
+    queryset: VehicleQuerySet = Vehicle.objects.order_by("id")
     serializer_class = VehicleSerializer
     filterset_class = VehicleFilter
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset: VehicleQuerySet = super().get_queryset()
 
         if self.action == "retrieve":
-            return queryset.select_related("office").prefetch_related(
-                Prefetch(
-                    "maintenance_records",
-                    queryset=MaintenanceRecord.objects.select_related("mechanic"),
-                )
-            )
+            return queryset.with_details()
+
         return queryset
 
     def get_serializer_class(self):
@@ -48,10 +44,9 @@ class VehicleViewSet(viewsets.ModelViewSet):
     )
     def maintenance_history(self, request, pk=None):
         vehicle = self.get_object()
-        maintenance_records = vehicle.maintenance_records.order_by(
-            "-maintenance_date",
-            "-id",
-        )
+        maintenance_records = MaintenanceRecord.objects.for_vehicle(
+            vehicle
+        ).latest_first()
 
         page = self.paginate_queryset(maintenance_records)
         if page is not None:
