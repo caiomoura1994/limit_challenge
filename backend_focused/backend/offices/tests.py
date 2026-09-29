@@ -38,6 +38,26 @@ class OfficeApiTests(APITestCase):
         delete_response = self.client.delete(detail_url)
         self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
 
+    def test_rejects_deleting_office_with_assigned_vehicles(self):
+        office = Office.objects.create(name="Downtown Office", city="New York")
+        Vehicle.objects.create(
+            vin="1HGCM82633A004352",
+            license_plate="ABC-1234",
+            make="Honda",
+            model="Accord",
+            year=2022,
+            office=office,
+        )
+
+        response = self.client.delete(reverse("office-detail", args=[office.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(
+            response.data["detail"],
+            "This resource cannot be deleted because related records depend on it.",
+        )
+        self.assertTrue(Office.objects.filter(id=office.id).exists())
+
 
 @pytest.mark.django_db
 def test_office_summary(django_assert_num_queries):
