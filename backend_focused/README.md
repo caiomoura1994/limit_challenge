@@ -77,7 +77,7 @@ The command is repeatable: it reuses its reserved VINs and only fills missing re
 docker compose exec -T -e DJANGO_LOG_SQL=false -e DJANGO_DEBUG=false backend python manage.py seed_performance
 ```
 
-Vehicle details return the entire history in one response. Rendering 50,000–100,000 table rows can be expensive in the browser; these deliberately large datasets stress both API response size and frontend rendering, beyond the challenge's hundreds-of-records scenario.
+Vehicle details return the entire history as a streamed JSON response. The frontend receives all records in one request and virtualizes the table, mounting only the visible rows rather than 50,000–100,000 DOM rows. These deliberately large datasets still stress response size and client-side JSON parsing, beyond the challenge's hundreds-of-records scenario.
 
 Replace existing data with a new dataset:
 
@@ -113,6 +113,12 @@ Filters combine and run before pagination. Date limits are inclusive. Summary an
 
 ## Performance testing
 
+Vehicle detail responses use two SQL queries regardless of history size: one for the vehicle and office, and one ordered query joining maintenance records with their mechanics. The history is read with `iterator(chunk_size=1000)`, serialized using the existing API serializers, and emitted in roughly 64 KiB chunks. No complete history list or complete JSON response is built in server memory. Each record, including long notes, remains intact; one unusually large record can exceed the response chunk target.
+
+The public JSON shape and generated TypeScript types are unchanged. Validation and object permissions happen before streaming begins; an error after the first byte results in an incomplete response, which the frontend rejects instead of treating as valid data. The current WSGI server still dedicates a worker/thread to the response until it finishes. Streaming reduces buffering, not the amount of data sent, and the browser still receives and parses the complete JSON before displaying it.
+
+See [PERFORMANCE.md](./PERFORMANCE.md) for local measurements and their limitations.
+
 Locust was not required by the challenge. It was added to make load and stress testing repeatable, especially for endpoints that handle large maintenance histories.
 
 Run the default Locust test:
@@ -138,5 +144,5 @@ make load-test-ui
 - Docker Compose was not required, but it provides a reproducible setup with a small number of commands. This makes the project easier to evaluate at the cost of requiring Docker.
 - Locust was not required, but it provides a repeatable way to validate API performance. It is kept as a development dependency and its container only runs through the optional `load-test` profile.
 - SQLite keeps the project easy to run without an additional database service, but a production environment would benefit from a database such as PostgreSQL.
-- Vehicle details include the complete maintenance history as requested, which can produce a large response. Related data is prefetched to keep the number of database queries constant, and a separate paginated history endpoint is also available.
+- Vehicle details include the complete maintenance history as requested, which can produce a large response. Related data uses joins and bounded iteration to keep SQL query count and server buffering bounded; a separate paginated history endpoint is also available. Streaming holds the connection open longer and does not remove the browser's download/JSON-parsing cost.
 - Vehicle conflicts are checked in the service to provide clear API messages and enforced again with database constraints for data integrity. This intentionally duplicates part of the rule across two layers.

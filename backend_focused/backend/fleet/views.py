@@ -1,3 +1,4 @@
+from django.http import StreamingHttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, viewsets
@@ -16,6 +17,7 @@ from fleet.serializers import (
     VehicleSerializer,
 )
 from fleet.services import VehicleService
+from fleet.streaming import stream_vehicle_detail
 from maintenance.models import MaintenanceRecord
 from maintenance.serializers import MaintenanceRecordSerializer
 
@@ -32,7 +34,7 @@ class VehicleViewSet(viewsets.ModelViewSet):
         queryset: VehicleQuerySet = super().get_queryset()
 
         if self.action == "retrieve":
-            return queryset.with_details()
+            return queryset.with_office()
 
         return queryset
 
@@ -41,6 +43,19 @@ class VehicleViewSet(viewsets.ModelViewSet):
             return VehicleDetailSerializer
 
         return super().get_serializer_class()
+
+    @extend_schema(responses=VehicleDetailSerializer)
+    def retrieve(self, request, *args, **kwargs):
+        vehicle = self.get_object()
+        maintenance_records = (
+            MaintenanceRecord.objects.for_vehicle(vehicle)
+            .with_mechanic()
+            .latest_first()
+        )
+        return StreamingHttpResponse(
+            stream_vehicle_detail(self.get_serializer(vehicle), maintenance_records),
+            content_type="application/json",
+        )
 
     @extend_schema(responses=MaintenanceRecordSerializer(many=True), filters=False)
     @action(

@@ -1,3 +1,4 @@
+import json
 from datetime import date, timedelta
 
 import pytest
@@ -45,7 +46,8 @@ class VehicleApiTests(APITestCase):
         detail_url = reverse("vehicle-detail", args=[vehicle_id])
         detail_response = self.client.get(detail_url)
         self.assertEqual(detail_response.status_code, status.HTTP_200_OK)
-        self.assertEqual(detail_response.data["office"]["id"], self.office.id)
+        detail_data = json.loads(b"".join(detail_response.streaming_content))
+        self.assertEqual(detail_data["office"]["id"], self.office.id)
 
         update_response = self.client.patch(
             detail_url,
@@ -434,9 +436,10 @@ def test_vehicle_detail_includes_office_and_maintenance_history():
         )
 
     response = APIClient().get(reverse("vehicle-detail", args=[vehicle.id]))
+    data = json.loads(b"".join(response.streaming_content))
 
     assert response.status_code == status.HTTP_200_OK
-    office_data = response.data["office"]
+    office_data = data["office"]
     assert {
         "id": office_data["id"],
         "name": office_data["name"],
@@ -448,9 +451,9 @@ def test_vehicle_detail_includes_office_and_maintenance_history():
     }
     assert office_data["created_at"] is not None
     assert office_data["updated_at"] is not None
-    assert len(response.data["maintenance_records"]) == 2
+    assert len(data["maintenance_records"]) == 2
 
-    for maintenance_record in response.data["maintenance_records"]:
+    for maintenance_record in data["maintenance_records"]:
         assert maintenance_record["vehicle"] == vehicle.id
         mechanic_data = maintenance_record["mechanic"]
         assert {
@@ -470,8 +473,8 @@ def test_vehicle_detail_includes_office_and_maintenance_history():
 
 @pytest.mark.parametrize(
     "maintenance_count",
-    [1, 300],
-    ids=["single-record", "hundreds-of-records"],
+    [0, 1, 300, 2200],
+    ids=["empty", "single-record", "hundreds-of-records", "multiple-chunks"],
 )
 @pytest.mark.django_db
 def test_vehicle_detail_query_count_is_constant(
@@ -506,9 +509,10 @@ def test_vehicle_detail_query_count_is_constant(
 
     with django_assert_num_queries(2):
         response = APIClient().get(reverse("vehicle-detail", args=[vehicle.id]))
+        data = json.loads(b"".join(response.streaming_content))
 
     assert response.status_code == status.HTTP_200_OK
-    assert len(response.data["maintenance_records"]) == maintenance_count
+    assert len(data["maintenance_records"]) == maintenance_count
 
 
 @pytest.mark.django_db

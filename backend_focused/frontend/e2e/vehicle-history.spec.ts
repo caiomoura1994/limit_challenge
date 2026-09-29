@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import type { VehicleDetail } from '../lib/api/types';
 import { expect, test } from './fixtures';
 
@@ -16,24 +16,45 @@ const vehicle: VehicleDetail = {
   maintenance_records: [],
 };
 
+function note(id: number) {
+  return `Inspection note ${id}.\nComplete technician findings: checked the suspension, brakes, electrical system and all fluid levels.\nFollow-up instructions remain readable in full, including this final sentence.`;
+}
+
+function historyRecords(count: number): VehicleDetail['maintenance_records'] {
+  // The API orders by date descending, then ID descending (many ties per date).
+  return Array.from({ length: count }, (_, index) => {
+    const id = count - index;
+    return {
+      ...timestamps,
+      id,
+      vehicle: 1,
+      mechanic: {
+        ...timestamps,
+        id: 3,
+        name: 'Alex Pereira',
+        certification_number: 'CERT-001',
+        active: true,
+      },
+      maintenance_date: `2026-09-${String(Math.ceil(id / (count / 10))).padStart(2, '0')}`,
+      maintenance_type: `Service ${id}`,
+      cost: '25.50',
+      notes: id === count || id === 1 ? note(id) : `Inspection note ${id}.`,
+    };
+  });
+}
+
 async function mockVehicle(page: Page, records: VehicleDetail['maintenance_records']) {
   const attempts: string[] = [];
-  const successful: string[] = [];
-  page.on('response', (response) => {
-    const url = new URL(response.url());
-    if (url.pathname.startsWith('/api/') && response.ok()) {
-      successful.push(`${url.pathname}${url.search}`);
-    }
-  });
+  const body = JSON.stringify({ ...vehicle, maintenance_records: records });
   await page.route('**/api/**', (route) => {
     const url = new URL(route.request().url());
     attempts.push(`${url.pathname}${url.search}`);
     expect(route.request().method()).toBe('GET');
     expect(url.pathname).toBe('/api/vehicles/1/');
     expect(url.search).toBe('');
-    return route.fulfill({ json: { ...vehicle, maintenance_records: records } });
+    return route.fulfill({ contentType: 'application/json', body });
   });
-  return { attempts, successful };
+  return attempts;
 }
 
 async function capture(page: Page, name: string) {
@@ -56,85 +77,98 @@ async function expectNoPagination(page: Page) {
   );
 }
 
-test('renders all 500 embedded history records in date and ID order without more requests when scrolling', async ({
-  page,
-}) => {
-  // Multiplication by 137 permutes IDs 1–500; each date has 50 records to order by ID.
-  const records: VehicleDetail['maintenance_records'] = Array.from({ length: 500 }, (_, index) => {
-    const id = ((index * 137) % 500) + 1;
-    return {
-      ...timestamps,
-      id,
-      vehicle: 1,
-      mechanic: {
-        ...timestamps,
-        id: 3,
-        name: 'Alex Pereira',
-        certification_number: 'CERT-001',
-        active: true,
-      },
-      maintenance_date: `2026-09-${String(((id - 1) % 10) + 1).padStart(2, '0')}`,
-      maintenance_type: `Service ${id}`,
-      cost: '25.50',
-      notes: `Inspection note ${id}.`,
-    };
-  });
-  const requests = await mockVehicle(page, records);
-  await page.goto('/vehicles/1');
-  const history = page.getByRole('table', { name: 'Vehicle maintenance history', exact: true });
-  const rows = history.locator('tbody tr');
-  await expect(rows).toHaveCount(500);
-  await expect(
-    page.getByText('500 records · complete history · newest first', { exact: true }),
-  ).toBeVisible();
-  const expectedIds = Array.from({ length: 10 }, (_, day) =>
-    Array.from({ length: 50 }, (_, offset) => (49 - offset) * 10 + 10 - day),
-  ).flat();
-  const cells = await rows.evaluateAll((items) =>
-    items.map((row) =>
-      Array.from(row.querySelectorAll('td'), (cell) => cell.innerText.trim().replace(/\s+/g, ' ')),
-    ),
-  );
-  expect(cells).toEqual(
-    expectedIds.map((id) => [
-      `Sep ${((id - 1) % 10) + 1}, 2026`,
-      `Service ${id}`,
-      'Alex Pereira CERT-001',
-      '25.50',
-      `Inspection note ${id}.`,
-    ]),
-  );
-  await expectNoPagination(page);
-  expect(requests.successful).toEqual(['/api/vehicles/1/']);
-  // Dev StrictMode can abort an initial mount; scrolling must not add even an aborted request.
-  const initialAttempts = requests.attempts.length;
+async function expectRecord(row: Locator, id: number, day: number, rowIndex: number) {
+  await expect(row).toHaveAttribute('aria-rowindex', String(rowIndex));
+  await expect(row.locator('td')).toHaveText([
+    `Sep ${day}, 2026`,
+    `Service ${id}`,
+    'Alex PereiraCERT-001',
+    '25.50',
+    note(id),
+  ]);
+  await expect(row.locator('td').last()).toHaveCSS('white-space', 'pre-wrap');
+  await expect(row.locator('td').last()).toHaveCSS('overflow-wrap', 'anywhere');
+}
 
-  const heading = page.getByRole('heading', { name: 'Maintenance history', exact: true });
-  for (const [name, width, height] of [
-    ['desktop', 1280, 720],
-    ['mobile', 390, 844],
-  ] as const) {
-    await page.setViewportSize({ width, height });
-    await heading.evaluate((element) => element.scrollIntoView({ block: 'start' }));
-    await expect(rows.first()).toBeInViewport();
-    await capture(page, `${name}-history-top`);
-    await rows.last().scrollIntoViewIfNeeded();
-    await expect(rows.last()).toBeInViewport();
-    await expect(rows.last()).toContainText('Inspection note 1.');
-    await capture(page, `${name}-history-last`);
-    expect(
-      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
-    ).toBe(true);
-    expect(requests.successful).toEqual(['/api/vehicles/1/']);
-    expect(requests.attempts).toHaveLength(initialAttempts);
-  }
-});
+for (const count of [500, 100_000]) {
+  test(`virtualizes all ${count} embedded history records with one API request`, async ({
+    page,
+  }) => {
+    const browserErrors: string[] = [];
+    page.on('pageerror', (error) => browserErrors.push(error.message));
+    const attempts = await mockVehicle(page, historyRecords(count));
+    await page.goto('/vehicles/1');
+    const history = page.getByRole('table', { name: 'Vehicle maintenance history', exact: true });
+    const rows = history.locator('tbody tr[data-index]');
+    const scroller = page.getByTestId('maintenance-history-scroll');
+    await expect(history).toHaveAttribute('aria-rowcount', String(count + 1));
+    await expect(
+      page.getByText(`${count} records · complete history · newest first`, { exact: true }),
+    ).toBeVisible();
+    await expectNoPagination(page);
+    expect(attempts).toEqual(['/api/vehicles/1/']);
+
+    const viewports =
+      count === 100_000
+        ? [
+            { name: 'desktop', width: 1280, height: 720 },
+            { name: 'mobile', width: 390, height: 844 },
+          ]
+        : [{ name: 'desktop', width: 1280, height: 720 }];
+    for (const { name, width, height } of viewports) {
+      await page.setViewportSize({ width, height });
+      await page
+        .getByRole('heading', { name: 'Maintenance history', exact: true })
+        .evaluate((element) => element.scrollIntoView({ block: 'start' }));
+      await scroller.evaluate((element) => {
+        element.scrollTop = 0;
+        element.scrollLeft = 0;
+      });
+      const first = rows.filter({ has: page.getByText(`Service ${count}`, { exact: true }) });
+      await expectRecord(first, count, 10, 2);
+      await expect.poll(() => rows.count()).toBeLessThan(100);
+      await expect(rows.nth(1)).toContainText(`Service ${count - 1}`);
+      if (count === 100_000) await capture(page, `${name}-history-top`);
+
+      await scroller.focus();
+      await page.keyboard.press('PageDown');
+      await expect.poll(() => scroller.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+      // Unknown row heights are refined while scrolling, so seek the measured end again.
+      await expect
+        .poll(async () => {
+          await scroller.evaluate((element) => {
+            element.scrollTop = element.scrollHeight;
+          });
+          return rows.last().getAttribute('aria-rowindex');
+        })
+        .toBe(String(count + 1));
+      await expectRecord(rows.last(), 1, 1, count + 1);
+      await expect(rows.last()).toBeInViewport();
+      await expect.poll(() => rows.count()).toBeLessThan(100);
+      if (name === 'mobile') {
+        expect(
+          await scroller.evaluate((element) => element.scrollWidth > element.clientWidth),
+        ).toBe(true);
+        await scroller.evaluate((element) => {
+          element.scrollLeft = element.scrollWidth;
+        });
+        await expect(rows.last().locator('td').last()).toBeInViewport();
+      }
+      if (count === 100_000) await capture(page, `${name}-history-last`);
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      ).toBe(true);
+      expect(attempts).toEqual(['/api/vehicles/1/']);
+      expect(browserErrors).toEqual([]);
+    }
+  });
+}
 
 test('shows a complete empty history on mobile without pagination or additional API reads', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  const requests = await mockVehicle(page, []);
+  const attempts = await mockVehicle(page, []);
   await page.goto('/vehicles/1');
   await expect(page.getByRole('heading', { name: 'Fleet History van', exact: true })).toBeVisible();
   await expect(page.getByRole('combobox', { name: 'Office', exact: true })).toHaveValue(
@@ -146,8 +180,6 @@ test('shows a complete empty history on mobile without pagination or additional 
   const empty = page.getByText('No maintenance has been recorded for this vehicle yet.', {
     exact: true,
   });
-  expect(requests.successful).toEqual(['/api/vehicles/1/']);
-  const initialAttempts = requests.attempts.length;
   await empty.scrollIntoViewIfNeeded();
   await expect(empty).toBeInViewport();
   await expect(
@@ -157,6 +189,40 @@ test('shows a complete empty history on mobile without pagination or additional 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );
-  expect(requests.successful).toEqual(['/api/vehicles/1/']);
-  expect(requests.attempts).toHaveLength(initialAttempts);
+  expect(attempts).toEqual(['/api/vehicles/1/']);
+});
+
+test('rejects truncated JSON without automatic retries and allows a manual retry', async ({
+  page,
+}) => {
+  await page.clock.install();
+  let attempts = 0;
+  let fail = true;
+  await page.route('**/api/**', (route) => {
+    expect(new URL(route.request().url()).pathname).toBe('/api/vehicles/1/');
+    attempts += 1;
+    return route.fulfill({
+      contentType: 'application/json',
+      body: fail ? '{"id":1,"maintenance_records":[' : JSON.stringify(vehicle),
+    });
+  });
+  await page.goto('/vehicles/1');
+  const alert = page.getByRole('main').getByRole('alert');
+  await expect(alert).toBeVisible();
+  await expect(alert.getByRole('button', { name: 'Retry', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Maintenance history', exact: true })).toHaveCount(
+    0,
+  );
+  await page.clock.fastForward(35_000);
+  await page.evaluate(() => {
+    document.dispatchEvent(new Event('visibilitychange'));
+    window.dispatchEvent(new Event('online'));
+  });
+  await page.clock.fastForward(5_000);
+  expect(attempts).toBe(1);
+  fail = false;
+  await alert.getByRole('button', { name: 'Retry', exact: true }).click();
+  await expect(page.getByText('0 records · complete history · newest first')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Fleet History van', exact: true })).toBeVisible();
+  expect(attempts).toBe(2);
 });

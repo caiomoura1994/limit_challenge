@@ -29,7 +29,7 @@ Aggregate reports have dedicated routes and local tabs within their owning secti
 
 ## Vehicle maintenance history
 
-The vehicle detail screen shows the complete history returned with the vehicle in one API response. Keep all rows in one standard Material UI table, sorted newest first, with a visible total and complete-history label. Do not paginate, truncate, or lazy-load this history. Preserve mechanic details, costs, notes, the empty state, horizontal table scrolling on mobile, and the Manage maintenance link to the separate paginated CRUD screen.
+The vehicle detail screen receives the complete history with the vehicle in one API response. Use a virtualized Material UI table (`react-virtuoso`) with all records available locally, a sticky header, and a keyboard-focusable scroll region. Keep the visible total and complete-history label; do not paginate, truncate notes, or fetch additional records while scrolling. The API owns newest-first ordering. Preserve mechanic details, costs, notes, the empty state, horizontal table scrolling on mobile, and the Manage maintenance link to the separate paginated CRUD screen. Expose total row count and virtual row positions to assistive technology; native browser Find is limited to mounted rows.
 
 ## Mascot interactions
 

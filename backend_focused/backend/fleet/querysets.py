@@ -1,20 +1,13 @@
 from django.db import models
-from django.db.models import F, Max, Prefetch, Q
-
-from maintenance.models import MaintenanceRecord
+from django.db.models import F, Max, Q
 
 
 class VehicleQuerySet(models.QuerySet):
     def active(self):
         return self.filter(active=True)
 
-    def with_details(self):
-        return self.select_related("office").prefetch_related(
-            Prefetch(
-                "maintenance_records",
-                queryset=MaintenanceRecord.objects.with_mechanic(),
-            )
-        )
+    def with_office(self):
+        return self.select_related("office")
 
     def with_last_maintenance(self):
         return self.annotate(

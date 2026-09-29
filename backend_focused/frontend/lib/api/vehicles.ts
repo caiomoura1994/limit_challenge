@@ -19,7 +19,12 @@ export const vehiclesApi = {
     return data;
   },
   async detail(id: number, signal?: AbortSignal) {
-    const { data } = await apiClient.get<VehicleDetail>(`/vehicles/${id}/`, { signal });
+    const { data } = await apiClient.get<VehicleDetail>(`/vehicles/${id}/`, {
+      signal,
+      timeout: 120_000,
+      responseType: 'json',
+      transitional: { silentJSONParsing: false },
+    });
     return data;
   },
   async needingMaintenance(page = 1, signal?: AbortSignal) {
