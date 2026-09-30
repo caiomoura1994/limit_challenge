@@ -1,15 +1,10 @@
 from rest_framework import serializers
 
 from fleet.models import Vehicle
-from fleet.services import VehicleConflictError, VehicleService
+from fleet.services import VehicleService
 from maintenance.serializers import MaintenanceRecordDetailSerializer
 from offices.models import Office
 from offices.serializers import OfficeSerializer
-
-CONFLICT_MESSAGES = {
-    "vin": "A vehicle with this VIN already exists.",
-    "license_plate": "This license plate is already assigned to an active vehicle.",
-}
 
 
 class VehicleSerializer(serializers.ModelSerializer):
@@ -18,24 +13,10 @@ class VehicleSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
     def create(self, validated_data):
-        vehicle_service = VehicleService()
-
-        try:
-            return vehicle_service.create(validated_data)
-        except VehicleConflictError as error:
-            raise serializers.ValidationError(
-                {field: CONFLICT_MESSAGES[field] for field in error.conflicts}
-            ) from error
+        return VehicleService().create(validated_data)
 
     def update(self, instance, validated_data):
-        vehicle_service = VehicleService()
-
-        try:
-            return vehicle_service.update(instance, validated_data)
-        except VehicleConflictError as error:
-            raise serializers.ValidationError(
-                {field: CONFLICT_MESSAGES[field] for field in error.conflicts}
-            ) from error
+        return VehicleService().update(instance, validated_data)
 
 
 class VehicleDetailSerializer(serializers.ModelSerializer):

@@ -10,9 +10,6 @@ from maintenance.errors import (
 )
 from maintenance.models import MaintenanceRecord, Mechanic
 
-CERTIFICATION_CONFLICT_MESSAGE = (
-    "A mechanic with this certification number already exists."
-)
 FUTURE_DATE_MESSAGE = "Maintenance date cannot be in the future."
 NEGATIVE_COST_MESSAGE = "Maintenance cost cannot be negative."
 
