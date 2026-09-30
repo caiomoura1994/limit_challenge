@@ -161,7 +161,6 @@ make load-test-ui
 - No VIN or license plate format was specified. VINs follow the standard 17-character maximum, while plates accept any non-empty value up to 20 characters instead of enforcing a country-specific pattern; both conflict checks are case-insensitive.
 - A mechanic's certification number is treated as a case-insensitive business identifier and must be unique.
 - Maintenance records describe completed work, so their date cannot be in the future and their cost cannot be negative. Maintenance type remains free text because the challenge does not define a canonical service taxonomy.
-- Combined maintenance-date and mechanic filters must match the same maintenance record. A service by the requested mechanic outside the requested period does not match a different service inside that period.
 - "Last 12 months" means the same calendar date one year earlier, with February 29 clamped to February 28. "More than 365 days" is strict: a vehicle serviced exactly 365 days ago is not overdue, and vehicles with no maintenance history are ordered first.
 - Assigning a vehicle stores only its current office, as requested; no assignment history is retained. Consequently, office summaries attribute a vehicle's historical maintenance costs to its current office.
 - The challenge does not specify a currency, so the UI treats all maintenance costs and report totals as US dollars (USD).

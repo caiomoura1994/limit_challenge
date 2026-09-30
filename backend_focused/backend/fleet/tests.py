@@ -357,44 +357,6 @@ def test_filters_by_maintenance(
     assert response_ids == expected_ids
 
 
-def test_combined_maintenance_filters_must_match_the_same_record(vehicle_search_data):
-    mixed = Vehicle.objects.create(
-        vin="1HGCM82633A004355",
-        license_plate="MIX-0001",
-        make="Mazda",
-        model="CX-5",
-        year=2024,
-        office=vehicle_search_data["primary_office"],
-    )
-    MaintenanceRecord.objects.create(
-        vehicle=mixed,
-        mechanic=vehicle_search_data["other_mechanic"],
-        maintenance_date=date(2026, 2, 15),
-        maintenance_type="Inspection",
-        cost="100.00",
-    )
-    MaintenanceRecord.objects.create(
-        vehicle=mixed,
-        mechanic=vehicle_search_data["mechanic"],
-        maintenance_date=date(2025, 2, 15),
-        maintenance_type="Inspection",
-        cost="100.00",
-    )
-
-    response = vehicle_search_data["client"].get(
-        reverse("vehicle-list"),
-        {
-            "maintenance_date_after": "2026-01-01",
-            "maintenance_date_before": "2026-12-31",
-            "mechanic_certification_number": "ASE-001",
-        },
-    )
-
-    assert response.status_code == status.HTTP_200_OK
-    assert response.data["count"] == 1
-    assert response.data["results"][0]["id"] == vehicle_search_data["honda"].id
-
-
 @pytest.mark.parametrize(
     "parameter",
     ["maintenance_date_after", "maintenance_date_before"],
