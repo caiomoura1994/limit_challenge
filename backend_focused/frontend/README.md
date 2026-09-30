@@ -4,12 +4,14 @@ The UI for the backend-focused challenge, built with Next.js, TypeScript, Materi
 
 ## Run locally
 
-Start the backend from `backend_focused/` (Docker is required):
+Start the backend from `backend_focused/` with Python 3.10 or newer:
 
 ```bash
-make start
 make seed
+make start
 ```
+
+To use Docker instead, run `make docker-start` followed by `make docker-seed`. See the root [README](../README.md) for installation and development commands.
 
 Then, from `backend_focused/frontend/`:
 
