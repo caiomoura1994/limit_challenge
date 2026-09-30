@@ -1,8 +1,6 @@
-from django.db.models import Exists, OuterRef
 from django_filters import rest_framework as filters
 
 from fleet.models import Vehicle
-from maintenance.models import MaintenanceRecord
 
 
 class VehicleFilter(filters.FilterSet):
@@ -42,21 +40,22 @@ class VehicleFilter(filters.FilterSet):
         if not maintenance_date and not certification_number:
             return queryset
 
-        matching_records = MaintenanceRecord.objects.filter(vehicle_id=OuterRef("pk"))
+        maintenance_filters = {}
 
         if maintenance_date:
             if maintenance_date.start:
-                matching_records = matching_records.filter(
-                    maintenance_date__gte=maintenance_date.start.date()
+                maintenance_filters["maintenance_records__maintenance_date__gte"] = (
+                    maintenance_date.start.date()
                 )
             if maintenance_date.stop:
-                matching_records = matching_records.filter(
-                    maintenance_date__lte=maintenance_date.stop.date()
+                maintenance_filters["maintenance_records__maintenance_date__lte"] = (
+                    maintenance_date.stop.date()
                 )
 
         if certification_number:
-            matching_records = matching_records.filter(
-                mechanic__certification_number__iexact=certification_number
-            )
+            maintenance_filters[
+                "maintenance_records__mechanic__certification_number__iexact"
+            ] = certification_number
 
-        return queryset.filter(Exists(matching_records))
+        # One filter call makes every condition match the same maintenance record.
+        return queryset.filter(**maintenance_filters).distinct()

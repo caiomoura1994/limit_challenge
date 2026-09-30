@@ -1,10 +1,13 @@
 from rest_framework import serializers
+
+from maintenance.errors import (
+    MaintenanceRecordRuleError,
+    MechanicCertificationConflictError,
+)
 from maintenance.models import MaintenanceRecord, Mechanic
 from maintenance.services import (
     CERTIFICATION_CONFLICT_MESSAGE,
-    MaintenanceRecordRuleError,
     MaintenanceRecordService,
-    MechanicCertificationConflictError,
     MechanicService,
 )
 

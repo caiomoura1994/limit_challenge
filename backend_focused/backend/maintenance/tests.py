@@ -11,11 +11,13 @@ from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
 from fleet.models import Vehicle
+from maintenance.errors import (
+    MaintenanceRecordRuleError,
+    MechanicCertificationConflictError,
+)
 from maintenance.models import MaintenanceRecord, Mechanic
 from maintenance.services import (
-    MaintenanceRecordRuleError,
     MaintenanceRecordService,
-    MechanicCertificationConflictError,
     MechanicService,
 )
 from offices.models import Office

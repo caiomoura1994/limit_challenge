@@ -1,9 +1,13 @@
 from datetime import date
 from decimal import Decimal
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError
 from django.utils import timezone
 
+from maintenance.errors import (
+    MaintenanceRecordRuleError,
+    MechanicCertificationConflictError,
+)
 from maintenance.models import MaintenanceRecord, Mechanic
 
 CERTIFICATION_CONFLICT_MESSAGE = (
@@ -11,16 +15,6 @@ CERTIFICATION_CONFLICT_MESSAGE = (
 )
 FUTURE_DATE_MESSAGE = "Maintenance date cannot be in the future."
 NEGATIVE_COST_MESSAGE = "Maintenance cost cannot be negative."
-
-
-class MechanicCertificationConflictError(Exception):
-    pass
-
-
-class MaintenanceRecordRuleError(Exception):
-    def __init__(self, errors: dict[str, list[str]]):
-        self.errors = errors
-        super().__init__(str(errors))
 
 
 class MechanicService:
@@ -42,8 +36,7 @@ class MechanicService:
         self._ensure_certification_number_is_available(data["certification_number"])
 
         try:
-            with transaction.atomic():
-                return Mechanic.objects.create(**data)
+            return Mechanic.objects.create(**data)
         except IntegrityError as error:
             if self._is_certification_constraint_violation(error):
                 raise MechanicCertificationConflictError() from error
@@ -66,8 +59,7 @@ class MechanicService:
             return mechanic
 
         try:
-            with transaction.atomic():
-                mechanic.save(update_fields=[*changes, "updated_at"])
+            mechanic.save(update_fields=[*changes, "updated_at"])
         except IntegrityError as error:
             if self._is_certification_constraint_violation(error):
                 raise MechanicCertificationConflictError() from error
