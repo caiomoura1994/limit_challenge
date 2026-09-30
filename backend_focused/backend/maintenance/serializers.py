@@ -1,30 +1,59 @@
 from rest_framework import serializers
-from rest_framework.validators import UniqueValidator
-
 from maintenance.models import MaintenanceRecord, Mechanic
+from maintenance.services import (
+    CERTIFICATION_CONFLICT_MESSAGE,
+    MaintenanceRecordRuleError,
+    MaintenanceRecordService,
+    MechanicCertificationConflictError,
+    MechanicService,
+)
 
 
 class MechanicSerializer(serializers.ModelSerializer):
     certification_number = serializers.CharField(
         max_length=100,
-        validators=[
-            UniqueValidator(
-                queryset=Mechanic.objects.all(),
-                lookup="iexact",
-                message="A mechanic with this certification number already exists.",
-            )
-        ],
     )
 
     class Meta:
         model = Mechanic
         fields = "__all__"
 
+    def create(self, validated_data):
+        try:
+            return MechanicService().create(validated_data)
+        except MechanicCertificationConflictError as error:
+            raise serializers.ValidationError(
+                {"certification_number": [CERTIFICATION_CONFLICT_MESSAGE]}
+            ) from error
+
+    def update(self, instance, validated_data):
+        try:
+            return MechanicService().update(instance, validated_data)
+        except MechanicCertificationConflictError as error:
+            raise serializers.ValidationError(
+                {"certification_number": [CERTIFICATION_CONFLICT_MESSAGE]}
+            ) from error
+
 
 class MaintenanceRecordSerializer(serializers.ModelSerializer):
+    maintenance_date = serializers.DateField()
+    cost = serializers.DecimalField(max_digits=12, decimal_places=2)
+
     class Meta:
         model = MaintenanceRecord
         fields = "__all__"
+
+    def create(self, validated_data):
+        try:
+            return MaintenanceRecordService().create(validated_data)
+        except MaintenanceRecordRuleError as error:
+            raise serializers.ValidationError(error.errors) from error
+
+    def update(self, instance, validated_data):
+        try:
+            return MaintenanceRecordService().update(instance, validated_data)
+        except MaintenanceRecordRuleError as error:
+            raise serializers.ValidationError(error.errors) from error
 
 
 class MaintenanceRecordDetailSerializer(serializers.ModelSerializer):

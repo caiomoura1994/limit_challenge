@@ -1,7 +1,10 @@
 from datetime import date, timedelta
+from decimal import Decimal
+from unittest.mock import patch
 
 import pytest
 from django.db import IntegrityError, transaction
+from django.test import TestCase
 from django.utils import timezone
 from django.urls import reverse
 from rest_framework import status
@@ -9,6 +12,12 @@ from rest_framework.test import APIClient, APITestCase
 
 from fleet.models import Vehicle
 from maintenance.models import MaintenanceRecord, Mechanic
+from maintenance.services import (
+    MaintenanceRecordRuleError,
+    MaintenanceRecordService,
+    MechanicCertificationConflictError,
+    MechanicService,
+)
 from offices.models import Office
 
 
@@ -230,6 +239,113 @@ class MaintenanceRecordApiTests(APITestCase):
                 maintenance_type="Inspection",
                 cost="-0.01",
             )
+
+
+class MechanicServiceTests(TestCase):
+    def test_rejects_case_insensitive_certification_conflicts(self):
+        existing = Mechanic.objects.create(
+            name="Jane Smith",
+            certification_number="ASE-001",
+        )
+        service = MechanicService()
+
+        with self.assertRaises(MechanicCertificationConflictError):
+            service.create(
+                {
+                    "name": "John Smith",
+                    "certification_number": "ase-001",
+                }
+            )
+
+        other = Mechanic.objects.create(
+            name="Mary Smith",
+            certification_number="ASE-002",
+        )
+        with self.assertRaises(MechanicCertificationConflictError):
+            service.update(
+                other,
+                {"certification_number": existing.certification_number.lower()},
+            )
+
+    def test_translates_database_race_for_certification_number(self):
+        constraint_error = IntegrityError(
+            "UNIQUE constraint failed: index " "'unique_mechanic_certification_ci'"
+        )
+
+        with (
+            patch.object(
+                MechanicService,
+                "certification_number_exists",
+                return_value=False,
+            ),
+            patch(
+                "maintenance.services.Mechanic.objects.create",
+                side_effect=constraint_error,
+            ),
+            self.assertRaises(MechanicCertificationConflictError),
+        ):
+            MechanicService().create(
+                {
+                    "name": "Jane Smith",
+                    "certification_number": "ASE-001",
+                }
+            )
+
+
+class MaintenanceRecordServiceTests(TestCase):
+    def setUp(self):
+        office = Office.objects.create(name="Downtown Office", city="New York")
+        self.vehicle = Vehicle.objects.create(
+            vin="1HGCM82633A004352",
+            license_plate="ABC-1234",
+            make="Honda",
+            model="Accord",
+            year=2022,
+            office=office,
+        )
+        self.mechanic = Mechanic.objects.create(
+            name="Jane Smith",
+            certification_number="ASE-001",
+        )
+
+    def test_rejects_future_date_and_negative_cost(self):
+        with self.assertRaises(MaintenanceRecordRuleError) as raised:
+            MaintenanceRecordService().create(
+                {
+                    "vehicle": self.vehicle,
+                    "mechanic": self.mechanic,
+                    "maintenance_date": timezone.localdate() + timedelta(days=1),
+                    "maintenance_type": "Inspection",
+                    "cost": Decimal("-0.01"),
+                }
+            )
+
+        self.assertEqual(
+            raised.exception.errors,
+            {
+                "maintenance_date": ["Maintenance date cannot be in the future."],
+                "cost": ["Maintenance cost cannot be negative."],
+            },
+        )
+        self.assertFalse(MaintenanceRecord.objects.exists())
+
+    def test_rejects_invalid_partial_update(self):
+        record = MaintenanceRecord.objects.create(
+            vehicle=self.vehicle,
+            mechanic=self.mechanic,
+            maintenance_date=timezone.localdate(),
+            maintenance_type="Inspection",
+            cost="100.00",
+        )
+
+        with self.assertRaises(MaintenanceRecordRuleError):
+            MaintenanceRecordService().update(
+                record,
+                {"cost": Decimal("-0.01")},
+            )
+
+        record.refresh_from_db()
+        self.assertEqual(record.cost, Decimal("100.00"))
 
 
 @pytest.mark.django_db
