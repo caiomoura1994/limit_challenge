@@ -100,7 +100,7 @@ test('renders all 500 embedded history records in date and ID order without more
       `Sep ${((id - 1) % 10) + 1}, 2026`,
       `Service ${id}`,
       'Alex Pereira CERT-001',
-      '25.50',
+      '$25.50',
       `Inspection note ${id}.`,
     ]),
   );

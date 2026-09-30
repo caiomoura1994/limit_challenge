@@ -1,4 +1,5 @@
-from datetime import timedelta
+from datetime import date, timedelta
+from unittest.mock import patch
 
 import pytest
 from django.utils import timezone
@@ -161,3 +162,40 @@ def test_office_summary(django_assert_num_queries):
         "maintenance_cost_last_year": "0.00",
         "last_maintenance": None,
     }
+
+
+@pytest.mark.django_db
+def test_office_summary_uses_twelve_calendar_months_on_leap_day():
+    office = Office.objects.create(name="Downtown Office", city="New York")
+    vehicle = Vehicle.objects.create(
+        vin="1HGCM82633A004352",
+        license_plate="ABC-1234",
+        make="Honda",
+        model="Accord",
+        year=2022,
+        office=office,
+    )
+    mechanic = Mechanic.objects.create(
+        name="Jane Smith",
+        certification_number="ASE-001",
+    )
+    MaintenanceRecord.objects.create(
+        vehicle=vehicle,
+        mechanic=mechanic,
+        maintenance_date=date(2023, 2, 28),
+        maintenance_type="Included service",
+        cost="100.00",
+    )
+    MaintenanceRecord.objects.create(
+        vehicle=vehicle,
+        mechanic=mechanic,
+        maintenance_date=date(2023, 2, 27),
+        maintenance_type="Excluded service",
+        cost="50.00",
+    )
+
+    with patch("offices.views.timezone.localdate", return_value=date(2024, 2, 29)):
+        response = APIClient().get(reverse("office-summary"))
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data[0]["maintenance_cost_last_year"] == "100.00"

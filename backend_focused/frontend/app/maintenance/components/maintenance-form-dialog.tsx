@@ -1,6 +1,15 @@
 'use client';
 
-import { Alert, Button, Dialog, DialogActions, DialogContent, Grid, Stack } from '@mui/material';
+import {
+  Alert,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  Grid,
+  InputAdornment,
+  Stack,
+} from '@mui/material';
 import { FormProvider } from 'react-hook-form';
 import { RHFAsyncAutocomplete } from '@/components/forms/rhf-async-autocomplete';
 import { RHFTextField } from '@/components/forms/rhf-text-field';
@@ -63,7 +72,12 @@ export function MaintenanceFormDialog({
                     label="Cost"
                     required
                     helperText="Up to two decimal places."
-                    slotProps={{ htmlInput: { inputMode: 'decimal' } }}
+                    slotProps={{
+                      input: {
+                        startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                      },
+                      htmlInput: { inputMode: 'decimal' },
+                    }}
                     rules={{
                       pattern: {
                         value: /^-?\d{1,10}(\.\d{1,2})?$/,

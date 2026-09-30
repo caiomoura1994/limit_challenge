@@ -129,6 +129,7 @@ test('manages offices, mechanics, vehicles and maintenance against the real API'
     `${mechanic.name} · ${mechanic.certification_number}`,
   );
   await dialog.getByLabel('Maintenance date').fill('2026-09-29');
+  await expect(dialog.getByText('$', { exact: true })).toBeVisible();
   await dialog.getByLabel('Cost').fill('123.45');
   await dialog.getByLabel('Maintenance type').fill(`E2E service ${records.suffix}`);
   await dialog.getByLabel('Notes').fill('Created by the end-to-end test.');
@@ -136,6 +137,9 @@ test('manages offices, mechanics, vehicles and maintenance against the real API'
     dialog.getByRole('button', { name: 'Create record' }).click(),
   );
   await expect(dialog).toBeHidden();
+  await page.goto(
+    `/maintenance?page=${Math.ceil((await records.count('maintenance-records')) / 10)}`,
+  );
   await expect(page.getByRole('table', { name: 'Maintenance records' })).toContainText(
     maintenance.maintenance_type,
   );
@@ -144,7 +148,7 @@ test('manages offices, mechanics, vehicles and maintenance against the real API'
     mechanic.certification_number,
   );
   await expect(page.getByRole('table', { name: 'Vehicle maintenance history' })).toContainText(
-    '123.45',
+    '$123.45',
   );
   await page.screenshot({
     path: testInfo.outputPath('vehicle-detail-desktop.png'),

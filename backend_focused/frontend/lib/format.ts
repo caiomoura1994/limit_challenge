@@ -8,10 +8,9 @@ export function formatDate(value: string | null | undefined): string {
       );
 }
 
-// The challenge does not specify a currency; don't invent a currency symbol.
 export function formatCost(value: string | number | null | undefined): string {
   return new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    style: 'currency',
+    currency: 'USD',
   }).format(Number(value ?? 0));
 }

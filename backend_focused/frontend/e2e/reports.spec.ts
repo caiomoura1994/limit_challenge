@@ -144,21 +144,21 @@ test('opens dedicated report tabs and preserves every row when switching between
     'Central office',
     'Salvador',
     '8',
-    '1,200.50',
+    '$1,200.50',
     'Sep 1, 2026',
   ]);
   await expect(officeRows.nth(2).getByRole('cell')).toHaveText([
     'Central office',
     'Recife',
     '0',
-    '0.00',
+    '$0.00',
     'Never',
   ]);
   await expect(officeRows.nth(3).getByRole('cell')).toHaveText([
     'Regional office',
     'Feira de Santana',
     '3',
-    '430.25',
+    '$430.25',
     'Aug 31, 2026',
   ]);
   await expect(
@@ -178,9 +178,9 @@ test('opens dedicated report tabs and preserves every row when switching between
   await expect(officeTable).toHaveCount(0);
   await capture(page, 'desktop-fleet-summary');
   await expectChartValues(page, 'Maintenance cost', [
-    { label: 'Central office · Salvador', value: '1,200.50' },
-    { label: 'Central office · Recife', value: '0.00' },
-    { label: 'Regional office · Feira de Santana', value: '430.25' },
+    { label: 'Central office · Salvador', value: '$1,200.50' },
+    { label: 'Central office · Recife', value: '$0.00' },
+    { label: 'Regional office · Feira de Santana', value: '$430.25' },
   ]);
   await showList(page);
   await expect(officeRows).toHaveCount(4);
@@ -198,9 +198,13 @@ test('opens dedicated report tabs and preserves every row when switching between
     .getByRole('table', { name: 'Mechanic workload', exact: true })
     .getByRole('row');
   await expect(mechanicRows).toHaveCount(4);
-  await expect(mechanicRows.nth(1).getByRole('cell')).toHaveText(['Alex Pereira', '7', '900.25']);
-  await expect(mechanicRows.nth(2).getByRole('cell')).toHaveText(['Alex Pereira', '0', '-15.50']);
-  await expect(mechanicRows.nth(3).getByRole('cell')).toHaveText(['Beatriz Santos', '3', '800.75']);
+  await expect(mechanicRows.nth(1).getByRole('cell')).toHaveText(['Alex Pereira', '7', '$900.25']);
+  await expect(mechanicRows.nth(2).getByRole('cell')).toHaveText(['Alex Pereira', '0', '-$15.50']);
+  await expect(mechanicRows.nth(3).getByRole('cell')).toHaveText([
+    'Beatriz Santos',
+    '3',
+    '$800.75',
+  ]);
   await expectChartValues(
     page,
     'Maintenance records',
@@ -211,9 +215,9 @@ test('opens dedicated report tabs and preserves every row when switching between
   );
   await capture(page, 'desktop-mechanic-workload');
   await expectChartValues(page, 'Total cost', [
-    { label: 'Alex Pereira', value: '900.25' },
-    { label: 'Alex Pereira', value: '-15.50' },
-    { label: 'Beatriz Santos', value: '800.75' },
+    { label: 'Alex Pereira', value: '$900.25' },
+    { label: 'Alex Pereira', value: '-$15.50' },
+    { label: 'Beatriz Santos', value: '$800.75' },
   ]);
   const costBars = page.getByTestId('report-chart').locator('.MuiBarChart-element');
   const negative = await costBars.nth(1).boundingBox();
@@ -285,7 +289,7 @@ for (const report of [
       .getByRole('table', { name: report.table, exact: true })
       .getByRole('row')
       .nth(1);
-    await expect(row).toContainText('0.00');
+    await expect(row).toContainText('$0.00');
     await expect(page.getByText(report.empty, { exact: true })).toHaveCount(0);
     await expectChartValues(page, report.metric, [{ label: report.label, value: '0' }]);
     await expect(

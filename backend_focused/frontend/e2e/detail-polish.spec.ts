@@ -178,6 +178,9 @@ test('keeps pagination inset and details decorated while preserving paging and e
     await expect(edit.getByRole('textbox', { name: record.field, exact: true })).toHaveValue(
       record.value,
     );
+    if (record.path === '/maintenance') {
+      await expect(edit.getByText('$', { exact: true })).toBeVisible();
+    }
     await edit.getByRole('button', { name: 'Cancel', exact: true }).click();
     await expect(edit).toBeHidden();
   }

@@ -158,7 +158,9 @@ make load-test-ui
 ## Assumptions
 
 - Pagination was not explicitly required, so list endpoints and the maintenance history endpoint use page-number pagination with 10 records per page. Vehicle details still return the complete maintenance history as requested.
-- No license plate format was specified, so the API accepts any non-empty value up to 20 characters instead of enforcing a country-specific pattern. Plate conflicts are checked without distinguishing uppercase and lowercase letters.
+- No VIN or license plate format was specified. VINs follow the standard 17-character maximum, while plates accept any non-empty value up to 20 characters instead of enforcing a country-specific pattern; both conflict checks are case-insensitive.
+- The challenge does not specify a currency, so the UI treats all maintenance costs and report totals as US dollars (USD).
+- Cascade behavior was not specified, so offices with vehicles, vehicles with maintenance records, and mechanics with maintenance records use protected deletion to preserve history.
 - The project structure was not specified, so the domain was divided into three Django apps: `offices`, `fleet`, and `maintenance`.
 
 ## Trade-offs

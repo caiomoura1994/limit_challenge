@@ -20,7 +20,7 @@ export function OfficeSummaryScreen() {
       <PageHeader
         title="Offices"
         navigation={<SectionTabs />}
-        description="Active vehicles and latest service across all offices. Maintenance costs cover the last 365 days."
+        description="Active vehicles and latest service across all offices. Maintenance costs cover the last 12 months."
       />
       <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 } }}>
         <Stack spacing={3}>
