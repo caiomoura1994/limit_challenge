@@ -1,9 +1,21 @@
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 
 from maintenance.models import MaintenanceRecord, Mechanic
 
 
 class MechanicSerializer(serializers.ModelSerializer):
+    certification_number = serializers.CharField(
+        max_length=100,
+        validators=[
+            UniqueValidator(
+                queryset=Mechanic.objects.all(),
+                lookup="iexact",
+                message="A mechanic with this certification number already exists.",
+            )
+        ],
+    )
+
     class Meta:
         model = Mechanic
         fields = "__all__"

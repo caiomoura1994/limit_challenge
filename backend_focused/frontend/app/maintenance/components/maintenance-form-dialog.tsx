@@ -78,12 +78,6 @@ export function MaintenanceFormDialog({
                       },
                       htmlInput: { inputMode: 'decimal' },
                     }}
-                    rules={{
-                      pattern: {
-                        value: /^-?\d{1,10}(\.\d{1,2})?$/,
-                        message: 'Enter a valid cost with up to 10 whole digits and 2 decimals.',
-                      },
-                    }}
                   />
                 </Grid>
                 <Grid size={12}>
@@ -91,11 +85,6 @@ export function MaintenanceFormDialog({
                     name="maintenance_type"
                     label="Maintenance type"
                     required
-                    rules={{
-                      maxLength: { value: 100, message: 'Use 100 characters or fewer.' },
-                      validate: (value) =>
-                        !!String(value ?? '').trim() || 'Enter the maintenance type.',
-                    }}
                   />
                 </Grid>
                 <Grid size={12}>

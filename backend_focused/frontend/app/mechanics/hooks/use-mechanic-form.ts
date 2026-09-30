@@ -1,12 +1,15 @@
 'use client';
 
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useSaveMechanic } from '@/hooks/api/use-mechanics';
-import type { Mechanic, MechanicInput } from '@/lib/api/types';
+import type { Mechanic } from '@/lib/api/types';
 import { applyFormErrors } from '@/lib/form-errors';
+import { mechanicFormSchema, type MechanicFormValues } from '@/lib/validation/form-schemas';
 
 export function useMechanicForm(mechanic: Mechanic | null, onSaved: () => void) {
-  const form = useForm<MechanicInput>({
+  const form = useForm<MechanicFormValues>({
+    resolver: zodResolver(mechanicFormSchema),
     defaultValues: {
       name: mechanic?.name ?? '',
       certification_number: mechanic?.certification_number ?? '',

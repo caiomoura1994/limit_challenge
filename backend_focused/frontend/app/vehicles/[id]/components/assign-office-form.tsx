@@ -5,6 +5,7 @@ import { FormProvider } from 'react-hook-form';
 import { RHFAsyncAutocomplete } from '@/components/forms/rhf-async-autocomplete';
 import { officeAutocomplete } from '@/lib/api/autocomplete';
 import type { VehicleDetail } from '@/lib/api/types';
+import type { OfficeAssignmentValues } from '@/lib/validation/form-schemas';
 import { useOfficeAssignment } from '../hooks/use-office-assignment';
 
 export function AssignOfficeForm({ vehicle }: { vehicle: VehicleDetail }) {
@@ -19,11 +20,10 @@ export function AssignOfficeForm({ vehicle }: { vehicle: VehicleDetail }) {
             Currently at {vehicle.office.name} in {vehicle.office.city}.
           </Typography>
           {error && <Alert severity="error">{error}</Alert>}
-          <RHFAsyncAutocomplete<{ office: string }>
+          <RHFAsyncAutocomplete<OfficeAssignmentValues>
             name="office"
             label="Office"
             required
-            rules={{ required: 'Choose an office.' }}
             source={officeAutocomplete}
             initialOption={{
               id: String(vehicle.office.id),

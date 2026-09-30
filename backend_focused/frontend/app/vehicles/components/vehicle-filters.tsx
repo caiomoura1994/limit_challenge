@@ -69,17 +69,6 @@ export function VehicleFilters({ search }: Props) {
               label="Maintained through"
               type="date"
               slotProps={{ inputLabel: { shrink: true } }}
-              rules={{
-                validate: (value: string) => {
-                  const after = search.form.getValues('maintenance_date_after');
-                  return (
-                    !value ||
-                    !after ||
-                    value >= after ||
-                    'Choose a date on or after the start date.'
-                  );
-                },
-              }}
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6, md: 6 }}>

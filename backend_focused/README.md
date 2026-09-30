@@ -159,8 +159,14 @@ make load-test-ui
 
 - Pagination was not explicitly required, so list endpoints and the maintenance history endpoint use page-number pagination with 10 records per page. Vehicle details still return the complete maintenance history as requested.
 - No VIN or license plate format was specified. VINs follow the standard 17-character maximum, while plates accept any non-empty value up to 20 characters instead of enforcing a country-specific pattern; both conflict checks are case-insensitive.
+- A mechanic's certification number is treated as a case-insensitive business identifier and must be unique.
+- Maintenance records describe completed work, so their date cannot be in the future and their cost cannot be negative. Maintenance type remains free text because the challenge does not define a canonical service taxonomy.
+- Combined maintenance-date and mechanic filters must match the same maintenance record. A service by the requested mechanic outside the requested period does not match a different service inside that period.
+- "Last 12 months" means the same calendar date one year earlier, with February 29 clamped to February 28. "More than 365 days" is strict: a vehicle serviced exactly 365 days ago is not overdue, and vehicles with no maintenance history are ordered first.
+- Assigning a vehicle stores only its current office, as requested; no assignment history is retained. Consequently, office summaries attribute a vehicle's historical maintenance costs to its current office.
 - The challenge does not specify a currency, so the UI treats all maintenance costs and report totals as US dollars (USD).
 - Cascade behavior was not specified, so offices with vehicles, vehicles with maintenance records, and mechanics with maintenance records use protected deletion to preserve history.
+- Authentication is intentionally omitted because the challenge marks JWT as an optional bonus.
 - The project structure was not specified, so the domain was divided into three Django apps: `offices`, `fleet`, and `maintenance`.
 
 ## Trade-offs
@@ -174,12 +180,15 @@ The implementation favors clear data flow and correctness while keeping the chal
 - Office summaries and mechanic workloads are calculated from source records on every request. This keeps results current and avoids cache invalidation or denormalized counters, but aggregate-query cost grows with the dataset.
 - Vehicle details include the complete maintenance history as required. Related data is prefetched to keep the query count bounded, but response size, serializer work, browser memory, and DOM size still grow with the history. A separate paginated history endpoint supports workflows that do not need the complete embedded result.
 - VIN and active-license-plate conflicts are checked in the service for clear API errors and enforced again with database constraints for integrity under concurrent writes. This intentionally duplicates the rule across two layers.
+- Certification uniqueness and non-negative maintenance costs are likewise enforced by both API validation and database constraints. Future-date validation remains application-level logic because its boundary moves every day and is not a stable database constraint.
+- Keeping only the current office makes assignment simple and matches the requested endpoint, but historical spending moves between office summaries when a vehicle is reassigned. A production audit requirement would justify a separate assignment-history model.
+- Maintenance type remains free text for flexibility and fidelity to the brief. A controlled taxonomy would improve reporting consistency once the accepted service categories are known.
 
 ### Frontend
 
 - A small presentation-only UI layer—including the mascot and navigation progress—was added to make the interface more approachable and provide clearer feedback. These components remain isolated from form and API state, keeping the functional cost low, but still add assets and tests for polish that was not required by the brief.
 - Server state lives in TanStack Query instead of another global store. Mutations invalidate related resources rather than updating the cache optimistically, which favors confirmed server data and simpler consistency at the cost of extra refetches and less immediate updates.
-- React Hook Form was added to centralize form state and validation and to support reusable typed Material UI fields. This reduces repeated form wiring and unnecessary controlled-input updates, at the cost of another dependency and an adapter layer between the form library and Material UI.
+- React Hook Form centralizes form state and supports reusable typed Material UI fields, while shared Zod schemas provide consistent client-side validation through the resolver adapter. This reduces repeated form wiring and keeps cross-field rules outside presentation components, at the cost of additional dependencies and an integration layer; the backend remains the final validation authority.
 - List filters and pagination live in the URL and change only when the user applies them. Links, reloads, and browser history therefore preserve the view while avoiding a request on every keystroke, at the cost of an explicit Apply action and URL parameters coupled to API filters.
 - TypeScript request and response types are generated from the OpenAPI schema and committed. Builds do not require a running backend, but API changes require `npm run generate:api` to prevent stale types.
 - Relationship fields use debounced, paginated server-side autocomplete rather than downloading whole catalogs into each form. Some table label lookups still collect all catalog pages for this challenge-sized dataset; at larger scale those rows should include display labels or use a dedicated lookup endpoint.

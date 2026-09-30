@@ -1,6 +1,8 @@
+from django.db.models import Exists, OuterRef
 from django_filters import rest_framework as filters
 
 from fleet.models import Vehicle
+from maintenance.models import MaintenanceRecord
 
 
 class VehicleFilter(filters.FilterSet):
@@ -21,3 +23,40 @@ class VehicleFilter(filters.FilterSet):
     class Meta:
         model = Vehicle
         fields = []
+
+    def filter_queryset(self, queryset):
+        maintenance_filter_names = {
+            "maintenance_date",
+            "mechanic_certification_number",
+        }
+
+        for name, value in self.form.cleaned_data.items():
+            if name not in maintenance_filter_names:
+                queryset = self.filters[name].filter(queryset, value)
+
+        maintenance_date = self.form.cleaned_data.get("maintenance_date")
+        certification_number = self.form.cleaned_data.get(
+            "mechanic_certification_number"
+        )
+
+        if not maintenance_date and not certification_number:
+            return queryset
+
+        matching_records = MaintenanceRecord.objects.filter(vehicle_id=OuterRef("pk"))
+
+        if maintenance_date:
+            if maintenance_date.start:
+                matching_records = matching_records.filter(
+                    maintenance_date__gte=maintenance_date.start.date()
+                )
+            if maintenance_date.stop:
+                matching_records = matching_records.filter(
+                    maintenance_date__lte=maintenance_date.stop.date()
+                )
+
+        if certification_number:
+            matching_records = matching_records.filter(
+                mechanic__certification_number__iexact=certification_number
+            )
+
+        return queryset.filter(Exists(matching_records))

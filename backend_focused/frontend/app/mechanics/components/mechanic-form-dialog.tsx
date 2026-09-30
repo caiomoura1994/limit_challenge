@@ -5,7 +5,8 @@ import { FormProvider } from 'react-hook-form';
 import { RHFSwitch } from '@/components/forms/rhf-switch';
 import { RHFTextField } from '@/components/forms/rhf-text-field';
 import { MascotDialogTitle } from '@/components/mascot/mascot-dialog-title';
-import type { Mechanic, MechanicInput } from '@/lib/api/types';
+import type { Mechanic } from '@/lib/api/types';
+import type { MechanicFormValues } from '@/lib/validation/form-schemas';
 import { useMechanicForm } from '../hooks/use-mechanic-form';
 
 type Props = {
@@ -39,35 +40,26 @@ export function MechanicFormDialog({ mechanic, onClose, onSaved }: Props) {
                 </Grid>
               )}
               <Grid size={12}>
-                <RHFTextField<MechanicInput>
+                <RHFTextField<MechanicFormValues>
                   name="name"
                   label="Name"
                   required
                   autoFocus
                   disabled={isPending}
-                  rules={{
-                    validate: (value) =>
-                      (typeof value === 'string' && Boolean(value.trim())) || 'Enter a name.',
-                  }}
                   slotProps={{ htmlInput: { maxLength: 255 } }}
                 />
               </Grid>
               <Grid size={12}>
-                <RHFTextField<MechanicInput>
+                <RHFTextField<MechanicFormValues>
                   name="certification_number"
                   label="Certification number"
                   required
                   disabled={isPending}
-                  rules={{
-                    validate: (value) =>
-                      (typeof value === 'string' && Boolean(value.trim())) ||
-                      'Enter a certification number.',
-                  }}
                   slotProps={{ htmlInput: { maxLength: 100 } }}
                 />
               </Grid>
               <Grid size={12}>
-                <RHFSwitch<MechanicInput>
+                <RHFSwitch<MechanicFormValues>
                   name="active"
                   label="Active mechanic"
                   disabled={isPending}

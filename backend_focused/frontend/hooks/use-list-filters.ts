@@ -3,9 +3,12 @@
 import { useMemo } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useRouter } from 'nextjs-toploader/app';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 
-export function useListFilters<T extends Record<string, string>>(defaults: T) {
+export function useListFilters<T extends Record<string, string>>(
+  defaults: T,
+  resolver?: Resolver<T>,
+) {
   const params = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -16,7 +19,7 @@ export function useListFilters<T extends Record<string, string>>(defaults: T) {
       ) as T,
     [defaults, params],
   );
-  const form = useForm<T>({ values });
+  const form = useForm<T>({ resolver, values });
   const requestedPage = Number(params.get('page') ?? 1);
   const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
 

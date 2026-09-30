@@ -1,14 +1,13 @@
 'use client';
 
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useSaveMaintenance } from '@/hooks/api/use-maintenance';
-import type { MaintenanceInput, MaintenanceRecord } from '@/lib/api/types';
+import type { MaintenanceRecord } from '@/lib/api/types';
 import { applyFormErrors } from '@/lib/form-errors';
+import { maintenanceFormSchema, type MaintenanceFormValues } from '@/lib/validation/form-schemas';
 
-export type MaintenanceFormValues = Omit<MaintenanceInput, 'vehicle' | 'mechanic'> & {
-  vehicle: string;
-  mechanic: string;
-};
+export type { MaintenanceFormValues } from '@/lib/validation/form-schemas';
 
 function today() {
   const date = new Date();
@@ -17,6 +16,7 @@ function today() {
 
 export function useMaintenanceForm(record: MaintenanceRecord | null, onSaved: () => void) {
   const form = useForm<MaintenanceFormValues>({
+    resolver: zodResolver(maintenanceFormSchema),
     defaultValues: {
       vehicle: record ? String(record.vehicle) : '',
       mechanic: record ? String(record.mechanic) : '',

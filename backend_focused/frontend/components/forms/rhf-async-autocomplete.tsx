@@ -2,13 +2,7 @@
 
 import { Autocomplete, Button, CircularProgress, TextField } from '@mui/material';
 import { useId, useState, type ReactNode } from 'react';
-import {
-  useController,
-  useFormContext,
-  type FieldPath,
-  type FieldValues,
-  type UseControllerProps,
-} from 'react-hook-form';
+import { useController, useFormContext, type FieldPath, type FieldValues } from 'react-hook-form';
 import { useAutocompleteOptions } from '@/hooks/api/use-autocomplete-options';
 import type { AutocompleteOption, AutocompleteSource } from '@/lib/api/autocomplete';
 
@@ -18,7 +12,6 @@ type Props<T extends FieldValues> = {
   source: AutocompleteSource;
   required?: boolean;
   disabled?: boolean;
-  rules?: UseControllerProps<T>['rules'];
   helperText?: ReactNode;
   initialOption?: AutocompleteOption;
 };
@@ -29,7 +22,6 @@ export function RHFAsyncAutocomplete<T extends FieldValues = FieldValues>({
   source,
   required,
   disabled,
-  rules,
   helperText,
   initialOption,
 }: Props<T>) {
@@ -39,7 +31,6 @@ export function RHFAsyncAutocomplete<T extends FieldValues = FieldValues>({
     name,
     control,
     disabled,
-    rules: { ...(required ? { required: 'This field is required.' } : {}), ...rules },
   });
   const selectedId = String(field.value ?? '');
   const [open, setOpen] = useState(false);

@@ -1,6 +1,6 @@
 # Fleet Tracker frontend
 
-The UI for the backend-focused challenge, built with Next.js, TypeScript, Material UI, React Hook Form, Axios, and TanStack Query. It connects to the real Django API.
+The UI for the backend-focused challenge, built with Next.js, TypeScript, Material UI, React Hook Form, Zod, Axios, and TanStack Query. It connects to the real Django API.
 
 ## Run locally
 
@@ -52,10 +52,11 @@ components/reports/         Shared List/Chart controls and lazy-loaded MUI X bar
 components/                Navigation, feedback, pagination, and common UI states
 hooks/api/                 TanStack Query queries, mutations, and invalidation
 lib/api/                   Typed Axios functions and generated API types
+lib/validation/            Shared Zod schemas for forms and cross-field rules
 theme.ts                   Shared Material UI theme
 ```
 
-Pages cover vehicles, offices, mechanics, and maintenance records. List filters and pagination live in the URL. Forms use `FormProvider` and reusable RHF fields; server validation appears on the corresponding field or in the form's error message. Successful mutations refresh affected queries.
+Pages cover vehicles, offices, mechanics, and maintenance records. List filters and pagination live in the URL. Forms use `FormProvider`, reusable RHF fields, and Zod schemas through `@hookform/resolvers`; server validation still appears on the corresponding field or in the form's error message. Successful mutations refresh affected queries.
 
 Each list has a visible search form. Filtering runs on the API before pagination, so it includes records outside the current page:
 

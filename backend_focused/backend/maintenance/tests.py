@@ -1,6 +1,7 @@
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django.urls import reverse
 from rest_framework import status
@@ -74,6 +75,48 @@ class MechanicApiTests(APITestCase):
         )
         self.assertTrue(Mechanic.objects.filter(id=mechanic.id).exists())
 
+    def test_rejects_duplicate_certification_number_case_insensitively(self):
+        mechanic = Mechanic.objects.create(
+            name="Jane Smith",
+            certification_number="ASE-001",
+        )
+
+        response = self.client.post(
+            reverse("mechanic-list"),
+            {
+                "name": "John Smith",
+                "certification_number": "ase-001",
+                "active": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.data["certification_number"][0],
+            "A mechanic with this certification number already exists.",
+        )
+
+        update_response = self.client.patch(
+            reverse("mechanic-detail", args=[mechanic.id]),
+            {"certification_number": "ase-001"},
+            format="json",
+        )
+
+        self.assertEqual(update_response.status_code, status.HTTP_200_OK)
+
+    def test_database_rejects_duplicate_certification_number(self):
+        Mechanic.objects.create(
+            name="Jane Smith",
+            certification_number="ASE-001",
+        )
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Mechanic.objects.create(
+                name="John Smith",
+                certification_number="ase-001",
+            )
+
 
 class MaintenanceRecordApiTests(APITestCase):
     def setUp(self):
@@ -126,6 +169,67 @@ class MaintenanceRecordApiTests(APITestCase):
 
         delete_response = self.client.delete(detail_url)
         self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def maintenance_payload(self, **overrides):
+        payload = {
+            "vehicle": self.vehicle.id,
+            "mechanic": self.mechanic.id,
+            "maintenance_date": timezone.localdate().isoformat(),
+            "maintenance_type": "Inspection",
+            "cost": "0.00",
+            "notes": "",
+        }
+        return payload | overrides
+
+    def test_rejects_negative_cost_but_accepts_zero(self):
+        rejected = self.client.post(
+            reverse("maintenance-record-list"),
+            self.maintenance_payload(cost="-0.01"),
+            format="json",
+        )
+
+        self.assertEqual(rejected.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("cost", rejected.data)
+
+        accepted = self.client.post(
+            reverse("maintenance-record-list"),
+            self.maintenance_payload(),
+            format="json",
+        )
+
+        self.assertEqual(accepted.status_code, status.HTTP_201_CREATED)
+
+    def test_rejects_future_maintenance_date_but_accepts_today(self):
+        tomorrow = timezone.localdate() + timedelta(days=1)
+        rejected = self.client.post(
+            reverse("maintenance-record-list"),
+            self.maintenance_payload(maintenance_date=tomorrow.isoformat()),
+            format="json",
+        )
+
+        self.assertEqual(rejected.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            rejected.data["maintenance_date"][0],
+            "Maintenance date cannot be in the future.",
+        )
+
+        accepted = self.client.post(
+            reverse("maintenance-record-list"),
+            self.maintenance_payload(),
+            format="json",
+        )
+
+        self.assertEqual(accepted.status_code, status.HTTP_201_CREATED)
+
+    def test_database_rejects_negative_cost(self):
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            MaintenanceRecord.objects.create(
+                vehicle=self.vehicle,
+                mechanic=self.mechanic,
+                maintenance_date=timezone.localdate(),
+                maintenance_type="Inspection",
+                cost="-0.01",
+            )
 
 
 @pytest.mark.django_db

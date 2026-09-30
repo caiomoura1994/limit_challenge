@@ -106,4 +106,35 @@ test('keeps the mobile layout usable and validates required form fields', async 
     'true',
   );
   await expect(dialog.getByText('This field is required.')).toHaveCount(2);
+  await dialog.getByRole('textbox', { name: 'Office name' }).fill('   ');
+  await dialog.getByRole('textbox', { name: 'City' }).fill('Salvador');
+  await dialog.getByRole('button', { name: 'Create office' }).click();
+  await expect(dialog.getByText('Enter an office name.')).toBeVisible();
+});
+
+test('rejects negative costs and future maintenance dates before submitting', async ({ page }) => {
+  let maintenanceCreates = 0;
+  await page.route('**/api/maintenance-records/**', (route) => {
+    if (route.request().method() === 'POST') {
+      maintenanceCreates += 1;
+      return route.continue();
+    }
+    return route.fulfill({ json: emptyPage });
+  });
+  await page.route('**/api/vehicles/**', (route) => route.fulfill({ json: emptyPage }));
+  await page.route('**/api/mechanics/**', (route) => route.fulfill({ json: emptyPage }));
+
+  await page.goto('/maintenance');
+  await page.getByRole('button', { name: 'Add maintenance', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Add maintenance record' });
+  await dialog.getByLabel('Maintenance date').fill('2999-01-01');
+  await dialog.getByRole('textbox', { name: 'Cost' }).fill('-0.01');
+  await dialog.getByRole('textbox', { name: 'Maintenance type' }).fill('Inspection');
+  await dialog.getByRole('button', { name: 'Create record' }).click();
+
+  await expect(dialog.getByText('Maintenance date cannot be in the future.')).toBeVisible();
+  await expect(
+    dialog.getByText('Enter zero or a positive cost with up to 10 whole digits and 2 decimals.'),
+  ).toBeVisible();
+  expect(maintenanceCreates).toBe(0);
 });

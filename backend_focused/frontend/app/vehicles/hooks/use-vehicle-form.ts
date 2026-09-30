@@ -1,21 +1,20 @@
 'use client';
 
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useSaveVehicle } from '@/hooks/api/use-vehicles';
 import { useFeedback } from '@/components/feedback-provider';
 import { applyFormErrors } from '@/lib/form-errors';
-import type { Vehicle, VehicleInput } from '@/lib/api/types';
+import type { Vehicle } from '@/lib/api/types';
+import { vehicleFormSchema, type VehicleFormValues } from '@/lib/validation/form-schemas';
 
-export type VehicleFormValues = Omit<VehicleInput, 'year' | 'office' | 'active'> & {
-  year: string;
-  office: string;
-  active: boolean;
-};
+export type { VehicleFormValues } from '@/lib/validation/form-schemas';
 
 export function useVehicleForm(vehicle: Vehicle | undefined, onSaved: (saved: Vehicle) => void) {
   const mutation = useSaveVehicle();
   const { notify } = useFeedback();
   const form = useForm<VehicleFormValues>({
+    resolver: zodResolver(vehicleFormSchema),
     defaultValues: {
       vin: vehicle?.vin ?? '',
       license_plate: vehicle?.license_plate ?? '',

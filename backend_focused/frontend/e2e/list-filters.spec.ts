@@ -73,26 +73,26 @@ test('filters all maintenance records by search, vehicle, mechanic and inclusive
   const start = await records.create('maintenance-records', {
     ...input,
     notes,
-    maintenance_date: '2026-09-01',
+    maintenance_date: '2025-09-01',
     maintenance_type: `Boundary start ${records.suffix}`,
   });
   const end = await records.create('maintenance-records', {
     ...input,
     notes,
-    maintenance_date: '2026-09-30',
+    maintenance_date: '2025-09-30',
     maintenance_type: `Boundary end ${records.suffix}`,
   });
   const excluded = [
-    { maintenance_date: '2026-08-31', maintenance_type: 'Before range' },
-    { maintenance_date: '2026-10-01', maintenance_type: 'After range' },
-    { maintenance_date: '2026-09-15', maintenance_type: 'Other vehicle', vehicle: otherVehicle.id },
+    { maintenance_date: '2025-08-31', maintenance_type: 'Before range' },
+    { maintenance_date: '2025-10-01', maintenance_type: 'After range' },
+    { maintenance_date: '2025-09-15', maintenance_type: 'Other vehicle', vehicle: otherVehicle.id },
     {
-      maintenance_date: '2026-09-15',
+      maintenance_date: '2025-09-15',
       maintenance_type: 'Other mechanic',
       mechanic: otherMechanic.id,
     },
     {
-      maintenance_date: '2026-09-15',
+      maintenance_date: '2025-09-15',
       maintenance_type: 'Different notes',
       notes: 'Unrelated work',
     },
@@ -113,22 +113,22 @@ test('filters all maintenance records by search, vehicle, mechanic and inclusive
     `${vehicle.license_plate} · ${vehicle.make} ${vehicle.model}`,
   );
   await selectOption(page, 'Mechanic', `${mechanic.name} · ${mechanic.certification_number}`);
-  await page.getByLabel('Maintained from', { exact: true }).fill('2026-09-30');
-  await page.getByLabel('Maintained through', { exact: true }).fill('2026-09-01');
+  await page.getByLabel('Maintained from', { exact: true }).fill('2025-09-30');
+  await page.getByLabel('Maintained through', { exact: true }).fill('2025-09-01');
   await page.getByRole('button', { name: 'Apply filters', exact: true }).click();
   await expect(page.getByLabel('Maintained through', { exact: true })).toHaveAttribute(
     'aria-invalid',
     'true',
   );
   await expect(page).toHaveURL('/maintenance?page=2');
-  await page.getByLabel('Maintained from', { exact: true }).fill('2026-09-01');
-  await page.getByLabel('Maintained through', { exact: true }).fill('2026-09-30');
+  await page.getByLabel('Maintained from', { exact: true }).fill('2025-09-01');
+  await page.getByLabel('Maintained through', { exact: true }).fill('2025-09-30');
   const expected = {
     search: notes.toUpperCase(),
     vehicle: String(vehicle.id),
     mechanic: String(mechanic.id),
-    maintenance_date_after: '2026-09-01',
-    maintenance_date_before: '2026-09-30',
+    maintenance_date_after: '2025-09-01',
+    maintenance_date_before: '2025-09-30',
   };
   const result = await applyFilters(page, 'maintenance-records', expected);
   expect(result.count).toBe(2);
@@ -142,7 +142,7 @@ test('filters all maintenance records by search, vehicle, mechanic and inclusive
   await expect(page.getByRole('textbox', { name: 'Search', exact: true })).toHaveValue(
     expected.search,
   );
-  await expect(page.getByLabel('Maintained from', { exact: true })).toHaveValue('2026-09-01');
+  await expect(page.getByLabel('Maintained from', { exact: true })).toHaveValue('2025-09-01');
   await expect(table.getByRole('row')).toHaveCount(3);
   await page.getByRole('button', { name: 'Clear filters', exact: true }).click();
   await expect(page).toHaveURL('/maintenance');

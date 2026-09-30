@@ -4,7 +4,8 @@ import { Alert, Button, Dialog, DialogActions, DialogContent, Grid } from '@mui/
 import { FormProvider } from 'react-hook-form';
 import { RHFTextField } from '@/components/forms/rhf-text-field';
 import { MascotDialogTitle } from '@/components/mascot/mascot-dialog-title';
-import type { Office, OfficeInput } from '@/lib/api/types';
+import type { Office } from '@/lib/api/types';
+import type { OfficeFormValues } from '@/lib/validation/form-schemas';
 import { useOfficeForm } from '../hooks/use-office-form';
 
 type Props = {
@@ -38,23 +39,21 @@ export function OfficeFormDialog({ office, onClose, onSaved }: Props) {
                 </Grid>
               )}
               <Grid size={12}>
-                <RHFTextField<OfficeInput>
+                <RHFTextField<OfficeFormValues>
                   name="name"
                   label="Office name"
                   required
                   autoFocus
                   disabled={isPending}
-                  rules={{ validate: (value) => Boolean(value.trim()) || 'Enter an office name.' }}
                   slotProps={{ htmlInput: { maxLength: 255 } }}
                 />
               </Grid>
               <Grid size={12}>
-                <RHFTextField<OfficeInput>
+                <RHFTextField<OfficeFormValues>
                   name="city"
                   label="City"
                   required
                   disabled={isPending}
-                  rules={{ validate: (value) => Boolean(value.trim()) || 'Enter a city.' }}
                   slotProps={{ htmlInput: { maxLength: 255 } }}
                 />
               </Grid>

@@ -1,21 +1,14 @@
 'use client';
 
 import { useMemo } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useRouter } from 'nextjs-toploader/app';
 import { useForm } from 'react-hook-form';
 import type { VehicleFilters } from '@/lib/api/types';
+import { vehicleFilterSchema, type VehicleFilterValues } from '@/lib/validation/form-schemas';
 
-export type VehicleFilterValues = {
-  search: string;
-  office: string;
-  active: string;
-  make: string;
-  model: string;
-  maintenance_date_after: string;
-  maintenance_date_before: string;
-  mechanic_certification_number: string;
-};
+export type { VehicleFilterValues } from '@/lib/validation/form-schemas';
 
 export const emptyVehicleFilters: VehicleFilterValues = {
   search: '',
@@ -32,22 +25,23 @@ export function useVehicleFilters() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
-  const values = useMemo<VehicleFilterValues>(
-    () => ({
+  const values = useMemo<VehicleFilterValues>(() => {
+    const active = searchParams.get('active');
+    return {
       search: searchParams.get('search') ?? '',
       office: searchParams.get('office') ?? '',
-      active: ['true', 'false'].includes(searchParams.get('active') ?? '')
-        ? searchParams.get('active')!
-        : '',
+      active: active === 'true' || active === 'false' ? active : '',
       make: searchParams.get('make') ?? '',
       model: searchParams.get('model') ?? '',
       maintenance_date_after: searchParams.get('maintenance_date_after') ?? '',
       maintenance_date_before: searchParams.get('maintenance_date_before') ?? '',
       mechanic_certification_number: searchParams.get('mechanic_certification_number') ?? '',
-    }),
-    [searchParams],
-  );
-  const form = useForm<VehicleFilterValues>({ values });
+    };
+  }, [searchParams]);
+  const form = useForm<VehicleFilterValues>({
+    resolver: zodResolver(vehicleFilterSchema),
+    values,
+  });
   const requestedPage = Number(searchParams.get('page') ?? 1);
   const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
   const filters: VehicleFilters = {

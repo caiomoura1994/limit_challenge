@@ -2,26 +2,18 @@
 
 import { TextField, TextFieldProps } from '@mui/material';
 import { useId } from 'react';
-import {
-  Controller,
-  FieldPath,
-  FieldValues,
-  UseControllerProps,
-  useFormContext,
-} from 'react-hook-form';
+import { Controller, FieldPath, FieldValues, useFormContext } from 'react-hook-form';
 
 export type RHFTextFieldProps<T extends FieldValues> = Omit<
   TextFieldProps,
   'name' | 'value' | 'defaultValue' | 'onChange' | 'error'
 > & {
   name: FieldPath<T>;
-  rules?: UseControllerProps<T>['rules'];
   numeric?: boolean;
 };
 
 export function RHFTextField<T extends FieldValues = FieldValues>({
   name,
-  rules,
   numeric = false,
   helperText,
   required,
@@ -35,7 +27,6 @@ export function RHFTextField<T extends FieldValues = FieldValues>({
       name={name}
       control={control}
       disabled={disabled}
-      rules={{ ...(required ? { required: 'This field is required.' } : {}), ...rules }}
       render={({ field: { ref, value, onChange, ...field }, fieldState }) => (
         <TextField
           {...props}

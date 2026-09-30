@@ -38,28 +38,10 @@ export function VehicleFormDialog({ vehicle, onClose, onSaved }: Props) {
               {serverError && <Alert severity="error">{serverError}</Alert>}
               <Grid container spacing={2}>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <RHFTextField<VehicleFormValues>
-                    name="make"
-                    label="Make"
-                    required
-                    rules={{
-                      required: 'Enter the make.',
-                      maxLength: { value: 100, message: 'Use 100 characters or fewer.' },
-                      validate: (value) => Boolean(String(value).trim()) || 'Enter the make.',
-                    }}
-                  />
+                  <RHFTextField<VehicleFormValues> name="make" label="Make" required />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <RHFTextField<VehicleFormValues>
-                    name="model"
-                    label="Model"
-                    required
-                    rules={{
-                      required: 'Enter the model.',
-                      maxLength: { value: 100, message: 'Use 100 characters or fewer.' },
-                      validate: (value) => Boolean(String(value).trim()) || 'Enter the model.',
-                    }}
-                  />
+                  <RHFTextField<VehicleFormValues> name="model" label="Model" required />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <RHFTextField<VehicleFormValues>
@@ -67,13 +49,6 @@ export function VehicleFormDialog({ vehicle, onClose, onSaved }: Props) {
                     label="Year"
                     type="number"
                     required
-                    rules={{
-                      required: 'Enter the year.',
-                      min: { value: 0, message: 'Year must be zero or greater.' },
-                      max: { value: 32767, message: 'Year must be 32767 or less.' },
-                      validate: (value) =>
-                        Number.isInteger(Number(value)) || 'Enter a whole number.',
-                    }}
                     slotProps={{ htmlInput: { min: 0, max: 32767, step: 1 } }}
                   />
                 </Grid>
@@ -82,32 +57,16 @@ export function VehicleFormDialog({ vehicle, onClose, onSaved }: Props) {
                     name="license_plate"
                     label="License plate"
                     required
-                    rules={{
-                      required: 'Enter the license plate.',
-                      maxLength: { value: 20, message: 'Use 20 characters or fewer.' },
-                      validate: (value) =>
-                        Boolean(String(value).trim()) || 'Enter the license plate.',
-                    }}
                   />
                 </Grid>
                 <Grid size={12}>
-                  <RHFTextField<VehicleFormValues>
-                    name="vin"
-                    label="VIN"
-                    required
-                    rules={{
-                      required: 'Enter the VIN.',
-                      maxLength: { value: 17, message: 'Use 17 characters or fewer.' },
-                      validate: (value) => Boolean(String(value).trim()) || 'Enter the VIN.',
-                    }}
-                  />
+                  <RHFTextField<VehicleFormValues> name="vin" label="VIN" required />
                 </Grid>
                 <Grid size={12}>
                   <RHFAsyncAutocomplete<VehicleFormValues>
                     name="office"
                     label="Office"
                     required
-                    rules={{ required: 'Choose an office.' }}
                     source={officeAutocomplete}
                   />
                 </Grid>
