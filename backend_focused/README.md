@@ -55,7 +55,7 @@ Open [Fleet Tracker at localhost:3000](http://localhost:3000). The frontend uses
 
 ## Demo
 
-Watch the [silent end-to-end frontend demonstration](./docs/fleet-tracker-demo.mp4) (1 minute 59 seconds).
+Watch the [narrated and captioned end-to-end frontend demonstration](./docs/fleet-tracker-demo.mp4) (1 minute 59 seconds).
 
 ## Tests
 
