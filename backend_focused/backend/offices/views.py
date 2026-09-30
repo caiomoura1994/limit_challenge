@@ -1,5 +1,3 @@
-from datetime import date
-
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import viewsets
@@ -10,13 +8,6 @@ from rest_framework.response import Response
 from offices.models import Office
 from offices.querysets import OfficeQuerySet
 from offices.serializers import OfficeSerializer, OfficeSummarySerializer
-
-
-def _twelve_months_before(value: date) -> date:
-    try:
-        return value.replace(year=value.year - 1)
-    except ValueError:
-        return value.replace(year=value.year - 1, day=28)
 
 
 @extend_schema(tags=["Offices"])
@@ -35,7 +26,12 @@ class OfficeViewSet(viewsets.ModelViewSet):
         filter_backends=[],
     )
     def summary(self, request):
-        maintenance_cutoff = _twelve_months_before(timezone.localdate())
+        today = timezone.localdate()
+        try:
+            maintenance_cutoff = today.replace(year=today.year - 1)
+        except ValueError:
+            maintenance_cutoff = today.replace(year=today.year - 1, day=28)
+
         offices: OfficeQuerySet = Office.objects.all()
         offices = offices.with_summary(maintenance_since=maintenance_cutoff)
 
