@@ -71,6 +71,15 @@ make check
 # or: make docker-check
 ```
 
+Frontend end-to-end tests use Playwright against the real API:
+
+```bash
+cd frontend
+npm run test:e2e
+```
+
+This provides strong workflow coverage, but runs slower and requires more setup than isolated unit tests.
+
 ## Seed data
 
 Create a small dataset:
@@ -179,4 +188,4 @@ make load-test-ui
 - React Hook Form and shared Zod schemas keep form logic consistent; the backend remains the final authority.
 - Filters and pagination live in the URL and update on **Apply**, preserving links and browser history without requesting on every keystroke.
 - OpenAPI-generated types are committed so builds do not require a running backend; API changes require `npm run generate:api`.
-- Relationship fields use debounced, paginated autocomplete. Playwright covers critical workflows against the real API.
+- Relationship fields use debounced, paginated autocomplete to avoid loading entire catalogs, at the cost of delayed results and additional request state.
