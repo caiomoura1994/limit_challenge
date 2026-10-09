@@ -3,11 +3,11 @@ from datetime import date
 import pytest
 from django.urls import reverse
 from rest_framework import status
-from rest_framework.test import APIClient
 
 from fleet.models import Vehicle
 from maintenance.models import MaintenanceRecord, Mechanic
 from offices.models import Office
+from server.test_utils import authenticated_client
 
 
 @pytest.mark.django_db
@@ -22,7 +22,7 @@ def test_mechanic_search_combines_with_status_and_preserves_pagination():
         name="Jane Smith", certification_number="ASE-INACTIVE", active=False
     )
     Mechanic.objects.create(name="John Doe", certification_number="OTHER")
-    client = APIClient()
+    client = authenticated_client()
     url = reverse("mechanic-list")
 
     for search in ["jane", "ase-"]:
@@ -102,7 +102,9 @@ def test_maintenance_search_matches_text_and_related_resources(
     maintenance_search_data, search
 ):
     _, _, records, _ = maintenance_search_data
-    response = APIClient().get(reverse("maintenance-record-list"), {"search": search})
+    response = authenticated_client().get(
+        reverse("maintenance-record-list"), {"search": search}
+    )
 
     assert response.status_code == status.HTTP_200_OK
     assert response.data["count"] == 3
@@ -148,7 +150,7 @@ def test_maintenance_date_filters_are_inclusive(
 ):
     _, _, records, other_record = maintenance_search_data
     all_records = [*records, other_record]
-    response = APIClient().get(reverse("maintenance-record-list"), filters)
+    response = authenticated_client().get(reverse("maintenance-record-list"), filters)
 
     assert response.status_code == status.HTTP_200_OK
     assert response.data["count"] == len(indexes)
@@ -178,7 +180,7 @@ def test_maintenance_combined_filters_apply_before_pagination(maintenance_search
         "maintenance_date_after": "2026-02-01",
         "maintenance_date_before": "2026-02-28",
     }
-    client = APIClient()
+    client = authenticated_client()
     url = reverse("maintenance-record-list")
     response = client.get(url, filters)
     assert response.status_code == status.HTTP_200_OK
@@ -199,7 +201,7 @@ def test_maintenance_combined_filters_apply_before_pagination(maintenance_search
 
 @pytest.mark.parametrize("field", ["maintenance_date_after", "maintenance_date_before"])
 def test_maintenance_rejects_invalid_date_filters(maintenance_search_data, field):
-    response = APIClient().get(
+    response = authenticated_client().get(
         reverse("maintenance-record-list"), {field: "not-a-date"}
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST

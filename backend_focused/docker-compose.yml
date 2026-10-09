@@ -38,6 +38,8 @@ services:
     environment:
       LOCUST_MAX_FAILURE_RATIO: "0.01"
       LOCUST_MAX_P95_MS: "1000"
+      LOCUST_USERNAME: "${LOCUST_USERNAME:-}"
+      LOCUST_PASSWORD: "${LOCUST_PASSWORD:-}"
     volumes:
       - ./backend:/app
     ports:

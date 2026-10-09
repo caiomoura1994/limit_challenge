@@ -41,7 +41,24 @@ The API will be available at `http://localhost:8000/api/`.
 - OpenAPI schema: `http://localhost:8000/api/schema/`
 - Health check: `http://localhost:8000/health/`
 
+## Authentication
+
+The API uses JWT authentication. Create a Django user, then exchange its username and password for an access and refresh token:
+
+```bash
+cd backend
+.venv/bin/python manage.py createsuperuser
+
+curl -X POST http://localhost:8000/api/token/ \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"your-user","password":"your-password"}'
+```
+
+Send the returned access token as `Authorization: Bearer <access-token>`. When it expires, post the refresh token to `/api/token/refresh/`. The health check, OpenAPI schema, Swagger UI, and token endpoints remain public.
+
 ## Frontend
+
+The frontend predates this optional backend bonus and does not include a login flow. Use the API documentation or another HTTP client when exercising JWT-protected endpoints.
 
 With the API running, start the Next.js interface in another terminal:
 
@@ -122,6 +139,8 @@ All seed commands use the local virtual environment by default. Prefix them with
 
 | Resource                     | Endpoint                                  |
 | ---------------------------- | ----------------------------------------- |
+| Obtain JWT pair              | `/api/token/`                             |
+| Refresh access token         | `/api/token/refresh/`                     |
 | Offices CRUD                 | `/api/offices/`                           |
 | Office summary               | `/api/offices/summary/`                   |
 | Vehicles CRUD and search     | `/api/vehicles/`                          |
@@ -151,8 +170,8 @@ Locust was not required by the challenge. It was added to make load and stress t
 Run the default Locust test:
 
 ```bash
-make load-test
-# or: make docker-load-test
+LOCUST_USERNAME=your-user LOCUST_PASSWORD=your-password make load-test
+# or: LOCUST_USERNAME=your-user LOCUST_PASSWORD=your-password make docker-load-test
 ```
 
 The local command expects `make start` or `make dev` to be running in another terminal. The Docker command starts the containerized API automatically.
@@ -160,8 +179,8 @@ The local command expects `make start` or `make dev` to be running in another te
 Open the Locust web interface:
 
 ```bash
-make load-test-ui
-# or: make docker-load-test-ui
+LOCUST_USERNAME=your-user LOCUST_PASSWORD=your-password make load-test-ui
+# or: LOCUST_USERNAME=your-user LOCUST_PASSWORD=your-password make docker-load-test-ui
 ```
 
 ## Assumptions
@@ -170,7 +189,7 @@ make load-test-ui
 - VINs allow up to 17 characters and plates up to 20. VINs, active plates, and certification numbers are unique case-insensitively.
 - Maintenance represents completed work: dates cannot be in the future, costs cannot be negative, and service type remains free text.
 - Office costs use the previous 12 calendar months; workload uses the current year. February 29 maps to February 28, and overdue means strictly more than 365 days.
-- Only the current office is stored, so historical costs follow the vehicle when reassigned. Costs use USD, related records are protected from deletion, and authentication remains out of scope.
+- Only the current office is stored, so historical costs follow the vehicle when reassigned. Costs use USD, and related records are protected from deletion.
 
 ## Trade-offs
 

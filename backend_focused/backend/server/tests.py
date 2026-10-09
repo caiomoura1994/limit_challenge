@@ -1,5 +1,8 @@
+from django.contrib.auth import get_user_model
 from django.test import SimpleTestCase
 from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APITestCase
 
 
 class HealthCheckTests(SimpleTestCase):
@@ -83,6 +86,8 @@ class ApiDocumentationTests(SimpleTestCase):
             ["Maintenance Records"],
         )
 
+        self.assertIn("jwtAuth", schema["components"]["securitySchemes"])
+
     def test_schema_describes_custom_response_shapes_and_write_fields(self):
         response = self.client.get(
             reverse("api-schema"),
@@ -133,3 +138,44 @@ class ApiDocumentationTests(SimpleTestCase):
                 self.assertNotIn("id", write_fields)
                 self.assertNotIn("created_at", write_fields)
                 self.assertNotIn("updated_at", write_fields)
+
+
+class JwtAuthenticationTests(APITestCase):
+    def setUp(self):
+        self.password = "test-password"
+        self.user = get_user_model().objects.create_user(
+            username="test-user",
+            password=self.password,
+        )
+
+    def test_api_requires_authentication(self):
+        response = self.client.get(reverse("office-list"))
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_issues_and_refreshes_tokens(self):
+        token_response = self.client.post(
+            reverse("token-obtain-pair"),
+            {"username": self.user.username, "password": self.password},
+            format="json",
+        )
+
+        self.assertEqual(token_response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", token_response.data)
+        self.assertIn("refresh", token_response.data)
+
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {token_response.data['access']}"
+        )
+        self.assertEqual(
+            self.client.get(reverse("office-list")).status_code,
+            status.HTTP_200_OK,
+        )
+
+        refresh_response = self.client.post(
+            reverse("token-refresh"),
+            {"refresh": token_response.data["refresh"]},
+            format="json",
+        )
+        self.assertEqual(refresh_response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", refresh_response.data)
