@@ -6,16 +6,17 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.test import APIClient, APITestCase
 
 from fleet.models import Vehicle
 from fleet.services import VehicleService
 from maintenance.models import MaintenanceRecord, Mechanic
 from offices.models import Office
+from server.test_utils import AuthenticatedAPITestCase, authenticated_client
 
 
-class VehicleApiTests(APITestCase):
+class VehicleApiTests(AuthenticatedAPITestCase):
     def setUp(self):
+        super().setUp()
         self.office = Office.objects.create(name="Downtown Office", city="New York")
 
     def vehicle_payload(self, **overrides):
@@ -282,7 +283,7 @@ def vehicle_search_data(db):
     )
 
     return {
-        "client": APIClient(),
+        "client": authenticated_client(),
         "primary_office": primary_office,
         "secondary_office": secondary_office,
         "mechanic": mechanic,
@@ -435,7 +436,7 @@ def test_vehicle_detail_includes_office_and_maintenance_history():
             notes="Routine inspection",
         )
 
-    response = APIClient().get(reverse("vehicle-detail", args=[vehicle.id]))
+    response = authenticated_client().get(reverse("vehicle-detail", args=[vehicle.id]))
 
     assert response.status_code == status.HTTP_200_OK
     office_data = response.data["office"]
@@ -507,7 +508,9 @@ def test_vehicle_detail_query_count_is_constant(
     )
 
     with django_assert_num_queries(2):
-        response = APIClient().get(reverse("vehicle-detail", args=[vehicle.id]))
+        response = authenticated_client().get(
+            reverse("vehicle-detail", args=[vehicle.id])
+        )
 
     assert response.status_code == status.HTTP_200_OK
     assert len(response.data["maintenance_records"]) == maintenance_count
@@ -544,7 +547,7 @@ def test_vehicle_maintenance_history_is_paginated_and_newest_first(
     url = reverse("vehicle-maintenance-history", args=[vehicle.id])
 
     with django_assert_num_queries(3):
-        response = APIClient().get(url)
+        response = authenticated_client().get(url)
 
     assert response.status_code == status.HTTP_200_OK
     assert response.data["count"] == 12
@@ -556,7 +559,7 @@ def test_vehicle_maintenance_history_is_paginated_and_newest_first(
     ]
     assert response.data["results"][0]["mechanic"] == mechanic.id
 
-    second_page_response = APIClient().get(url, {"page": 2})
+    second_page_response = authenticated_client().get(url, {"page": 2})
 
     assert second_page_response.status_code == status.HTTP_200_OK
     assert second_page_response.data["next"] is None
@@ -582,7 +585,7 @@ def test_assigns_vehicle_to_another_office():
     )
     previous_updated_at = vehicle.updated_at
 
-    response = APIClient().post(
+    response = authenticated_client().post(
         reverse("vehicle-assign-office", args=[vehicle.id]),
         {"office": new_office.id},
         format="json",
@@ -616,7 +619,7 @@ def test_rejects_invalid_vehicle_assignment(payload):
         office=office,
     )
 
-    response = APIClient().post(
+    response = authenticated_client().post(
         reverse("vehicle-assign-office", args=[vehicle.id]),
         payload,
         format="json",
@@ -633,7 +636,7 @@ def test_rejects_invalid_vehicle_assignment(payload):
 def test_assign_vehicle_returns_not_found_for_unknown_vehicle():
     office = Office.objects.create(name="Downtown Office", city="New York")
 
-    response = APIClient().post(
+    response = authenticated_client().post(
         reverse("vehicle-assign-office", args=[999999]),
         {"office": office.id},
         format="json",
@@ -691,7 +694,7 @@ def test_returns_active_vehicles_needing_maintenance(django_assert_num_queries):
     )
 
     with django_assert_num_queries(2):
-        response = APIClient().get(reverse("vehicle-needing-maintenance"))
+        response = authenticated_client().get(reverse("vehicle-needing-maintenance"))
 
     assert response.status_code == status.HTTP_200_OK
     assert response.data["count"] == 3
@@ -733,7 +736,7 @@ def test_duplicate_vehicle_check(vin, license_plate, expected_conflicts):
         office=office,
     )
 
-    response = APIClient().post(
+    response = authenticated_client().post(
         reverse("vehicle-duplicate-check"),
         {
             "vin": vin,
@@ -756,7 +759,7 @@ def test_duplicate_vehicle_check(vin, license_plate, expected_conflicts):
 )
 @pytest.mark.django_db
 def test_duplicate_vehicle_check_requires_both_fields(payload, missing_field):
-    response = APIClient().post(
+    response = authenticated_client().post(
         reverse("vehicle-duplicate-check"),
         payload,
         format="json",

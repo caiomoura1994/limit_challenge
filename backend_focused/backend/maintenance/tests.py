@@ -8,7 +8,6 @@ from django.test import TestCase
 from django.utils import timezone
 from django.urls import reverse
 from rest_framework import status
-from rest_framework.test import APIClient, APITestCase
 
 from fleet.models import Vehicle
 from maintenance.errors import (
@@ -21,9 +20,10 @@ from maintenance.services import (
     MechanicService,
 )
 from offices.models import Office
+from server.test_utils import AuthenticatedAPITestCase, authenticated_client
 
 
-class MechanicApiTests(APITestCase):
+class MechanicApiTests(AuthenticatedAPITestCase):
     def test_mechanic_crud(self):
         create_response = self.client.post(
             reverse("mechanic-list"),
@@ -129,8 +129,9 @@ class MechanicApiTests(APITestCase):
             )
 
 
-class MaintenanceRecordApiTests(APITestCase):
+class MaintenanceRecordApiTests(AuthenticatedAPITestCase):
     def setUp(self):
+        super().setUp()
         office = Office.objects.create(name="Downtown Office", city="New York")
         self.vehicle = Vehicle.objects.create(
             vin="1HGCM82633A004352",
@@ -400,7 +401,7 @@ def test_mechanic_workload_for_current_year(django_assert_num_queries):
     )
 
     with django_assert_num_queries(1):
-        response = APIClient().get(reverse("mechanic-workload"))
+        response = authenticated_client().get(reverse("mechanic-workload"))
 
     assert response.status_code == status.HTTP_200_OK
     assert response.data == [

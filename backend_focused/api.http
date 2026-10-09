@@ -1,15 +1,38 @@
 @baseUrl = http://localhost:8000/api
+@username = admin
+@password = change-me
+@accessToken = paste-access-token-here
+@refreshToken = paste-refresh-token-here
 @officeId = 1
 @newOfficeId = 2
 @vehicleId = 1
 @mechanicId = 1
 @maintenanceRecordId = 1
 
+### Obtain access and refresh tokens
+POST {{baseUrl}}/token/
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+### Refresh the access token
+POST {{baseUrl}}/token/refresh/
+Content-Type: application/json
+
+{
+  "refresh": "{{refreshToken}}"
+}
+
 ### List offices
 GET {{baseUrl}}/offices/
+Authorization: Bearer {{accessToken}}
 
 ### Create office
 POST {{baseUrl}}/offices/
+Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
@@ -19,9 +42,11 @@ Content-Type: application/json
 
 ### Get office
 GET {{baseUrl}}/offices/{{officeId}}/
+Authorization: Bearer {{accessToken}}
 
 ### Update office
 PATCH {{baseUrl}}/offices/{{officeId}}/
+Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
@@ -30,18 +55,23 @@ Content-Type: application/json
 
 ### Delete office
 DELETE {{baseUrl}}/offices/{{officeId}}/
+Authorization: Bearer {{accessToken}}
 
 ### Office summary
 GET {{baseUrl}}/offices/summary/
+Authorization: Bearer {{accessToken}}
 
 ### List vehicles
 GET {{baseUrl}}/vehicles/
+Authorization: Bearer {{accessToken}}
 
 ### Search vehicles
 GET {{baseUrl}}/vehicles/?office={{officeId}}&active=true&make=Toyota&model=Corolla&maintenance_date_after=2025-01-01&maintenance_date_before=2026-12-31&mechanic_certification_number=CERT-00001
+Authorization: Bearer {{accessToken}}
 
 ### Create vehicle
 POST {{baseUrl}}/vehicles/
+Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
@@ -56,9 +86,11 @@ Content-Type: application/json
 
 ### Vehicle details
 GET {{baseUrl}}/vehicles/{{vehicleId}}/
+Authorization: Bearer {{accessToken}}
 
 ### Update vehicle
 PATCH {{baseUrl}}/vehicles/{{vehicleId}}/
+Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
@@ -67,12 +99,15 @@ Content-Type: application/json
 
 ### Delete vehicle
 DELETE {{baseUrl}}/vehicles/{{vehicleId}}/
+Authorization: Bearer {{accessToken}}
 
 ### Paginated vehicle maintenance history
 GET {{baseUrl}}/vehicles/{{vehicleId}}/maintenance-history/?page=1
+Authorization: Bearer {{accessToken}}
 
 ### Assign vehicle to another office
 POST {{baseUrl}}/vehicles/{{vehicleId}}/assign-office/
+Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
@@ -81,9 +116,11 @@ Content-Type: application/json
 
 ### Vehicles needing maintenance
 GET {{baseUrl}}/vehicles/needing-maintenance/?page=1
+Authorization: Bearer {{accessToken}}
 
 ### Check vehicle conflicts
 POST {{baseUrl}}/vehicles/duplicate-check/
+Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
@@ -93,9 +130,11 @@ Content-Type: application/json
 
 ### List mechanics
 GET {{baseUrl}}/mechanics/
+Authorization: Bearer {{accessToken}}
 
 ### Create mechanic
 POST {{baseUrl}}/mechanics/
+Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
@@ -106,9 +145,11 @@ Content-Type: application/json
 
 ### Get mechanic
 GET {{baseUrl}}/mechanics/{{mechanicId}}/
+Authorization: Bearer {{accessToken}}
 
 ### Update mechanic
 PATCH {{baseUrl}}/mechanics/{{mechanicId}}/
+Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
@@ -117,15 +158,19 @@ Content-Type: application/json
 
 ### Delete mechanic
 DELETE {{baseUrl}}/mechanics/{{mechanicId}}/
+Authorization: Bearer {{accessToken}}
 
 ### Mechanic workload
 GET {{baseUrl}}/mechanics/workload/
+Authorization: Bearer {{accessToken}}
 
 ### List maintenance records
 GET {{baseUrl}}/maintenance-records/
+Authorization: Bearer {{accessToken}}
 
 ### Create maintenance record
 POST {{baseUrl}}/maintenance-records/
+Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
@@ -139,9 +184,11 @@ Content-Type: application/json
 
 ### Get maintenance record
 GET {{baseUrl}}/maintenance-records/{{maintenanceRecordId}}/
+Authorization: Bearer {{accessToken}}
 
 ### Update maintenance record
 PATCH {{baseUrl}}/maintenance-records/{{maintenanceRecordId}}/
+Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
@@ -150,3 +197,4 @@ Content-Type: application/json
 
 ### Delete maintenance record
 DELETE {{baseUrl}}/maintenance-records/{{maintenanceRecordId}}/
+Authorization: Bearer {{accessToken}}

@@ -7,6 +7,8 @@ from locust.exception import StopUser
 
 MAX_FAILURE_RATIO = float(os.getenv("LOCUST_MAX_FAILURE_RATIO", "0.01"))
 MAX_P95_MS = int(os.getenv("LOCUST_MAX_P95_MS", "1000"))
+USERNAME = os.getenv("LOCUST_USERNAME")
+PASSWORD = os.getenv("LOCUST_PASSWORD")
 
 
 @events.quitting.add_listener
@@ -38,6 +40,21 @@ class FleetApiUser(HttpUser):
     wait_time = between(0.1, 0.5)
 
     def on_start(self):
+        if not USERNAME or not PASSWORD:
+            logging.error("LOCUST_USERNAME and LOCUST_PASSWORD are required")
+            raise StopUser()
+
+        with self.client.post(
+            "/api/token/",
+            json={"username": USERNAME, "password": PASSWORD},
+            name="/api/token/ [setup]",
+            catch_response=True,
+        ) as response:
+            if response.status_code != 200:
+                response.failure("Could not authenticate the load-test user")
+                raise StopUser()
+            self.client.headers["Authorization"] = f"Bearer {response.json()['access']}"
+
         with self.client.get(
             "/api/vehicles/?page=1",
             name="/api/vehicles/ [setup]",

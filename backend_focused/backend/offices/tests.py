@@ -5,14 +5,14 @@ import pytest
 from django.utils import timezone
 from django.urls import reverse
 from rest_framework import status
-from rest_framework.test import APIClient, APITestCase
 
 from fleet.models import Vehicle
 from maintenance.models import MaintenanceRecord, Mechanic
 from offices.models import Office
+from server.test_utils import AuthenticatedAPITestCase, authenticated_client
 
 
-class OfficeApiTests(APITestCase):
+class OfficeApiTests(AuthenticatedAPITestCase):
     def test_office_crud(self):
         create_response = self.client.post(
             reverse("office-list"),
@@ -68,7 +68,7 @@ def test_office_search_matches_name_or_city_and_filters_before_pagination():
         [Office(name=f"Downtown {index}", city="Boston") for index in range(12)]
     )
     Office.objects.create(name="Uptown Office", city="New York")
-    client = APIClient()
+    client = authenticated_client()
     url = reverse("office-list")
 
     for search in ["DOWNTOWN", "boston"]:
@@ -143,7 +143,7 @@ def test_office_summary(django_assert_num_queries):
     )
 
     with django_assert_num_queries(1):
-        response = APIClient().get(reverse("office-summary"))
+        response = authenticated_client().get(reverse("office-summary"))
 
     assert response.status_code == status.HTTP_200_OK
 
@@ -195,7 +195,7 @@ def test_office_summary_uses_twelve_calendar_months_on_leap_day():
     )
 
     with patch("offices.views.timezone.localdate", return_value=date(2024, 2, 29)):
-        response = APIClient().get(reverse("office-summary"))
+        response = authenticated_client().get(reverse("office-summary"))
 
     assert response.status_code == status.HTTP_200_OK
     assert response.data[0]["maintenance_cost_last_year"] == "100.00"

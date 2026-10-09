@@ -6,12 +6,12 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.urls import reverse
 from django.utils import timezone
-from rest_framework.test import APIClient
 
 from fleet.management.commands import seed_performance
 from fleet.models import Vehicle
 from maintenance.models import MaintenanceRecord, Mechanic
 from offices.models import Office
+from server.test_utils import authenticated_client
 
 
 @pytest.fixture
@@ -184,7 +184,7 @@ def test_performance_seed_vehicles_appear_first_in_list(
 ):
     call_command("seed_performance", stdout=StringIO())
 
-    response = APIClient().get(reverse("vehicle-list"))
+    response = authenticated_client().get(reverse("vehicle-list"))
 
     assert response.status_code == 200
     assert response.data["count"] == len(small_performance_seed) + 1
